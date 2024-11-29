@@ -3,6 +3,7 @@
 #include "encoding.h"
 #include "ast.h"
 #include <cstdio>
+#include <cassert>
 
 #include "freealut/include/AL/alut.h"
 #include "fmgon/soundplayer.h"
@@ -72,7 +73,7 @@ bool vsk_phrase_from_sing_items(
             if (auto ast = vsk_get_sing_param(item)) {
                 auto i0 = ast->to_int();
                 if ((1 <= i0) && (i0 <= 32)) {
-                    phrase->m_setting.m_length = (24.0f * 4.0f) / i0;
+                    phrase->m_setting.m_length = (24.0f * 4) / i0;
                     continue;
                 }
             }
@@ -84,7 +85,7 @@ bool vsk_phrase_from_sing_items(
                 auto L = ast->to_int();
                 // NOTE: 24 is the length of a quarter note
                 if ((1 <= L) && (L <= 32)) {
-                    length = float(24 * 4 / L);
+                    length = 24.0f * 4 / L;
                 } else {
                     return false;
                 }

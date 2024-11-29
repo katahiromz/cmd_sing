@@ -5,22 +5,27 @@
 
 #pragma once
 
-#include <mutex>
 #include <deque>
 #include <vector>
 #include <memory>
 #include <unordered_map>
 
-//#include <thread>
-//#include <mutex>
-
-#ifdef _WIN32
+#if defined(__cplusplus) && (__cplusplus >= 201103L) // C++11
+    #include <thread>
+    #include <mutex>
+    namespace unboost {
+        using thread = std::thread;
+        using mutex = std::mutex;
+    }
+#elif defined(_WIN32)
     #define UNBOOST_USE_WIN32_THREAD
+    #include "unboost/mutex.hpp"
+    #include "unboost/thread.hpp"
 #else
     #define UNBOOST_USE_POSIX_THREAD
+    #include "unboost/mutex.hpp"
+    #include "unboost/thread.hpp"
 #endif
-#include "unboost/mutex.hpp"
-#include "unboost/thread.hpp"
 
 //////////////////////////////////////////////////////////////////////////////
 // OpenAL --- portable audio library
