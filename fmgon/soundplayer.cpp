@@ -278,6 +278,8 @@ void VskPhrase::realize(VskSoundPlayer *player) {
     // create wave data
     uint32_t isample = 0;
     auto size = uint32_t((m_goal + 1) * SAMPLERATE * 2);
+    if (size % 2 != 0)
+        ++size;
     unique_ptr<FM_SAMPLETYPE[]> data(new FM_SAMPLETYPE[size]);
     memset(&data[0], 0, size * sizeof(FM_SAMPLETYPE));
 
