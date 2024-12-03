@@ -4,16 +4,15 @@
 #include "ast.h"
 #include <cstdio>
 #include <cassert>
-#include <iostream>
 
-#include "freealut/include/AL/alut.h"
-#include "fmgon/soundplayer.h"
-#include "scanner.h"
+#include "freealut/include/AL/alut.h"   // OpenAL utility
+#include "fmgon/soundplayer.h"          // サウンドプレーヤー
+#include "scanner.h"                    // VskScanner
 
+// サウンドプレーヤー
 extern std::shared_ptr<VskSoundPlayer> vsk_sound_player;
-static VskSoundSetting                 vsk_cmd_sing_settings;
-
-//////////////////////////////////////////////////////////////////////////////
+// CMD SINGの現在の設定
+static VskSoundSetting vsk_cmd_sing_settings;
 
 // VskSingItem --- CMD SING 用の演奏項目
 struct VskSingItem
@@ -32,6 +31,7 @@ struct VskSingItem
         m_dot = false;
     }
 
+    // デバッグ用
     VskString to_str() const {
         VskString ret = m_subcommand;
         if (m_sign)
@@ -48,9 +48,7 @@ VskString vsk_string_from_sing_items(const std::vector<VskSingItem>& items)
 {
     VskString ret;
     for (auto& item : items)
-    {
         ret += item.to_str();
-    }
     return ret;
 }
 
@@ -124,7 +122,7 @@ bool vsk_phrase_from_sing_items(std::shared_ptr<VskPhrase> phrase, const std::ve
     return true;
 } // vsk_phrase_from_sing_items
 
-// CMD SINGの項目の繰り返しを展開する。
+// CMD SINGの項目の繰り返し(RP)を展開する。
 bool vsk_expand_sing_items_repeat(std::vector<VskSingItem>& items)
 {
 retry:;
@@ -132,17 +130,17 @@ retry:;
     int level = 0, repeat = 0;
     for (size_t i = 0; i < items.size(); ++i)
     {
-        if (items[i].m_subcommand == "RP") {
+        if (items[i].m_subcommand == "RP") { // 繰り返し（repeat）
             auto ast = vsk_get_sing_param(items[i]);
             repeat = ast->to_int();
-            if (repeat < 0) {
+            if (repeat < 0) { // マイナスの繰り返しはおかしい
                 assert(0);
                 return false;
             }
             n = i;
             continue;
         }
-        if (items[i].m_subcommand == "[") {
+        if (items[i].m_subcommand == "[") { // 繰り返しのカッコはじめ
             if (n == VskString::npos) {
                 assert(0);
                 return false;
@@ -151,21 +149,21 @@ retry:;
             ++level;
             continue;
         }
-        if (items[i].m_subcommand == "]") {
+        if (items[i].m_subcommand == "]") { // 繰り返しのカッコ終わり
             --level;
             std::vector<VskSingItem> sub(items.begin() + k + 1, items.begin() + i);
             items.erase(items.begin() + n, items.begin() + i + 1);
             for (int m = 0; m < repeat; ++m) {
                 items.insert(items.begin() + k - 1, sub.begin(), sub.end());
             }
-            goto retry;
+            goto retry; // １つ展開したら最初からやり直す
         }
     }
     return true;
 } // vsk_expand_sing_items_repeat
 
-// CMD SINGの項目を評価する
-bool vsk_eval_sing_items(std::vector<VskSingItem>& items, const VskString& expr)
+// 文字列からCMD SINGの項目を取得する
+bool vsk_sing_items_from_string(std::vector<VskSingItem>& items, const VskString& expr)
 {
     // 大文字にする
     auto str = expr;
@@ -174,29 +172,26 @@ bool vsk_eval_sing_items(std::vector<VskSingItem>& items, const VskString& expr)
     // スキャナーを使って字句解析を始める
     VskScanner scanner(str);
     items.clear();
-
     VskSingItem item;
     VskString subcommand;
-    while (!scanner.eof()) {
-        char ch = scanner.getch();
-        if (vsk_isblank(ch)) {
-            continue;
-        }
-        if (ch == ';') {
-            continue;
-        }
-        if (ch == '[') {
+    while (!scanner.eof()) { // 文字列の終わりまで
+        char ch = scanner.getch(); // 一文字取得
+        if (vsk_isblank(ch)) continue; // 空白は無視
+        if (ch == ';') continue;
+
+        if (ch == '[') { // 繰り返しのカッコはじめ？
             item.m_subcommand = "[";
             items.push_back(item);
             item.clear();
             continue;
         }
-        if (ch == ']') {
+        if (ch == ']') { // 繰り返しのカッコ終わり？
             item.m_subcommand = "]";
             items.push_back(item);
             item.clear();
             continue;
         }
+
         int status = 0;
         if (vsk_isupper(ch)) {
             subcommand.push_back(ch);
@@ -205,11 +200,11 @@ bool vsk_eval_sing_items(std::vector<VskSingItem>& items, const VskString& expr)
                 case 'T': case 'O': case 'L': 
                 case 'C': case 'D': case 'E': case 'F': case 'G': case 'A': case 'B':
                 case 'X':
-                    status = 1;
+                    status = 1; // 引数が１つあるかもしれない
                     break;
                 case 'R':
-                    status = 1;
-                    if (scanner.peek() == 'P') {
+                    status = 1; // 引数が１つあるかもしれない
+                    if (scanner.peek() == 'P') { // "RP" (repeat)？
                         subcommand += scanner.getch();
                     }
                     break;
@@ -221,18 +216,19 @@ bool vsk_eval_sing_items(std::vector<VskSingItem>& items, const VskString& expr)
             }
         }
         if (status == 0) {
-            // Illegal function call
-            return false;
+            return false; // 引数がないのにここに来るのはおかしい
         }
         item.m_subcommand = subcommand;
         subcommand.clear();
 
+        // シャープかフラット
         ch = scanner.peek();
         if ((ch == '+') || (ch == '#') || (ch == '-')) {
             item.m_sign = scanner.getch();
             ch = scanner.peek();
         }
 
+        // パラメータを取得する
         if (scanner.peek() == '(') {
             int level = 0;
             for (;;) {
@@ -272,37 +268,45 @@ bool vsk_eval_sing_items(std::vector<VskSingItem>& items, const VskString& expr)
             }
         }
 
+        // 付点（ドット）
         ch = scanner.peek();
         if (ch == '.') {
             item.m_dot = true;
             scanner.getch();
         }
 
+        // 項目を追加
         items.push_back(item);
         item.clear();
     }
 
+    // 繰り返しを展開する
     return vsk_expand_sing_items_repeat(items);
-} // vsk_eval_sing_items
+} // vsk_sing_items_from_string
 
 // CMD SING文実装の本体
 bool vsk_sound_cmd_sing(const VskString& str)
 {
+    // 文字列からCMD SINGの項目を取得する
     std::vector<VskSingItem> items;
-    if (!vsk_eval_sing_items(items, str))
-        return false;
+    if (!vsk_sing_items_from_string(items, str))
+        return false; // 失敗
 
-    // create phrase
+    // フレーズを作成する
     auto phrase = std::make_shared<VskPhrase>();
     phrase->m_setting = vsk_cmd_sing_settings;
     phrase->m_setting.m_fm = false;
     if (!vsk_phrase_from_sing_items(phrase, items))
         return false;
 
+    // フレーズを演奏する
     VskScoreBlock block = { phrase };
-    vsk_cmd_sing_settings = phrase->m_setting;
     vsk_sound_player->play(block);
-    return true;
+
+    // 設定を保存する
+    vsk_cmd_sing_settings = phrase->m_setting;
+
+    return true; // 成功
 }
 
 #ifdef CMD_SING_EXE

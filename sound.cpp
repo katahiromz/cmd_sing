@@ -1,18 +1,16 @@
 #include "types.h"
 #include "sound.h"
-#include "encoding.h"
-#include "ast.h"
 #include <cstdio>
-#include <cassert>
 
-#include "freealut/include/AL/alut.h"
-#include "fmgon/soundplayer.h"
-#include "scanner.h"
+#include "freealut/include/AL/alut.h"   // OpenAL utility
+#include "fmgon/soundplayer.h"          // サウンドプレーヤー
 
+// サウンドプレーヤー
 std::shared_ptr<VskSoundPlayer> vsk_sound_player;
 
 //////////////////////////////////////////////////////////////////////////////
 
+// 音源を初期化する
 bool vsk_sound_init(void)
 {
     if (!alutInit(NULL, NULL))
@@ -25,12 +23,14 @@ bool vsk_sound_init(void)
     return true;
 }
 
+// 音源を停止する
 void vsk_sound_stop(void)
 {
     if (vsk_sound_player)
         vsk_sound_player->stop();
 }
 
+// 音源を破棄する
 void vsk_sound_exit(void)
 {
     vsk_sound_stop();
@@ -38,11 +38,13 @@ void vsk_sound_exit(void)
     vsk_sound_player = nullptr;
 }
 
+// 音源が演奏中か？
 bool vsk_sound_is_playing(void)
 {
     return vsk_sound_player && vsk_sound_player->m_playing_music;
 }
 
+// 音源を待つ。単位はミリ秒
 bool vsk_sound_wait(VskDword milliseconds)
 {
     if (vsk_sound_is_playing())
@@ -50,6 +52,7 @@ bool vsk_sound_wait(VskDword milliseconds)
     return false;
 }
 
+// BEEP音を出す
 void vsk_sound_beep(int i)
 {
     assert(vsk_sound_player);
@@ -58,11 +61,13 @@ void vsk_sound_beep(int i)
     }
 }
 
+// BEEP音を出しているか？
 bool vsk_sound_is_beeping(void)
 {
     return vsk_sound_player && vsk_sound_player->is_beeping();
 }
 
+// OpenALのエラー文字列を取得する
 const char *vsk_get_openal_error(int error)
 {
     switch (error)
@@ -77,6 +82,7 @@ const char *vsk_get_openal_error(int error)
     }
 }
 
+// OpenALのエラー文字列を出力する
 void vsk_print_openal_error(int error)
 {
     std::printf(vsk_get_openal_error(error));

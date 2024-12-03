@@ -1,3 +1,5 @@
+#pragma once
+
 struct VskScanner
 {
     VskString   m_str;
