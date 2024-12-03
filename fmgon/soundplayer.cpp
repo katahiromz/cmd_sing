@@ -270,29 +270,29 @@ void VskPhrase::realize(VskSoundPlayer *player) {
     calc_total();
     rescan_notes();
 
-    // initialize YM2203
+    // Initialize YM2203
     YM2203& ym = player->m_ym;
     ym.init(CLOCK, SAMPLERATE);
     ym.reset();
 
-    // create wave data
+    // Allocate the wave data
     uint32_t isample = 0;
     auto size = uint32_t((m_goal + 1) * SAMPLERATE * 2);
-    if (size % 2 != 0)
+    if (size % 2 != 0) // It fails when size was an odd number
         ++size;
     unique_ptr<FM_SAMPLETYPE[]> data(new FM_SAMPLETYPE[size]);
-    memset(&data[0], 0, size * sizeof(FM_SAMPLETYPE));
+    std::memset(&data[0], 0, size * sizeof(FM_SAMPLETYPE));
 
-    if (m_setting.m_fm) {
+    if (m_setting.m_fm) { // FM sound?
         int ch = FM_CH1;
 
         int tone = -1;
         VskLFOCtrl lc;
 
-        for (auto& note : m_notes) {
+        for (auto& note : m_notes) { // For each note
             // do key on
             auto& timbre = m_setting.m_timbre;
-            if (note.m_key != -1) {
+            if (note.m_key != -1) { // Has key?
                 // change tone if necessary
                 if (tone != note.m_tone) {
                     const auto new_tone = note.m_tone;
@@ -347,7 +347,7 @@ void VskPhrase::realize(VskSoundPlayer *player) {
             ym.count(uint32_t(sec * 1000 * 1000));
             isample += nsamples;
         }
-    } else {
+    } else { // SSG sound?
         int ch = SSG_CH_A;
 
         ym.set_tone_or_noise(ch, TONE_MODE);
@@ -375,14 +375,6 @@ void VskPhrase::realize(VskSoundPlayer *player) {
             ym.count(uint32_t(sec * 1000 * 1000));
             isample += nsamples;
         }
-    }
-
-    // reverb of 1sec
-    {
-        auto sec = 1;
-        auto nsamples = int(SAMPLERATE * sec);
-        ym.mix(&data[isample * 2], nsamples);
-        ym.count(uint32_t(sec * 1000 * 1000));
     }
 
     ALenum error;
