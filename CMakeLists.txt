@@ -56,9 +56,7 @@ message(STATUS "BUILD_TESTS: ${BUILD_TESTS}")
 # cmd_sing
 
 # cmd_sing.exe
-add_executable(cmd_sing
-    cmd_sing.cpp
-    sound.cpp)
+add_executable(cmd_sing cmd_sing.cpp sound.cpp)
 target_compile_definitions(cmd_sing PRIVATE UNICODE _UNICODE JAPAN CMD_SING_EXE)
 target_link_libraries(cmd_sing fmgon alut ${OPENAL_LIBRARY})
 
