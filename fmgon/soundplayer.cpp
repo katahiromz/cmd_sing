@@ -385,15 +385,31 @@ void VskPhrase::realize(VskSoundPlayer *player) {
         ym.count(uint32_t(sec * 1000 * 1000));
     }
 
+    ALenum error;
+
     // generate an OpenAL buffer
+    alGetError(); // clear error
     alGenBuffers(1, &m_buffer);
     assert(m_buffer != ALuint(-1));
+    error = alGetError();
+    assert(error == 0);
+
+    alGetError(); // clear error
     alBufferData(m_buffer, AL_FORMAT_STEREO16, &data[0], sizeof(FM_SAMPLETYPE) * size, SAMPLERATE);
+    error = alGetError();
+    assert(error == 0);
 
     // generate an OpenAL source
+    alGetError(); // clear error
     alGenSources(1, &m_source);
     assert(m_source != ALuint(-1));
+    error = alGetError();
+    assert(error == 0);
+
+    alGetError(); // clear error
     alSourcei(m_source, AL_BUFFER, m_buffer);
+    error = alGetError();
+    assert(error == 0);
 } // VskPhrase::realize
 
 //////////////////////////////////////////////////////////////////////////////
