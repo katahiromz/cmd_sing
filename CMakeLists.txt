@@ -5,7 +5,7 @@
 cmake_minimum_required(VERSION 3.6)
 
 # project name and languages
-project(cmd_sing VERSION 0.5.0 LANGUAGES CXX)
+project(cmd_sing VERSION 0.5.1 LANGUAGES CXX)
 
 # UTF-8
 if(MSVC)
