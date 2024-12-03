@@ -548,7 +548,7 @@ void VskSoundPlayer::register_special_action(int action_no, VskSpecialActionFn f
 void VskSoundPlayer::do_special_action(int action_no)
 {
     auto fn = m_action_no_to_special_action[action_no];
-    if (!fn)
+    if (fn)
         (*fn)(action_no);
     else
         std::printf("special action %d\n", action_no);
