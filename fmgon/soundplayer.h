@@ -194,9 +194,11 @@ struct VskPhrase {
 }; // struct VskPhrase
 
 //////////////////////////////////////////////////////////////////////////////
-// VskScoreBlock
 
 typedef std::vector<std::shared_ptr<VskPhrase>>  VskScoreBlock;
+
+// The function pointer type of special action
+typedef void (*VskSpecialActionFn)(int action_number);
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -210,6 +212,7 @@ struct VskSoundPlayer {
     unboost::mutex                              m_play_async_lock;
     std::unordered_map<int, VskScoreBlock>      m_async_sound_map;
     static int                                  m_next_async_sound_id;
+    std::unordered_map<int, VskSpecialActionFn> m_action_no_to_special_action;
 
     VskSoundPlayer() : m_playing_music(false),
                        m_stopping_event(false, false) { init_beep(); }
@@ -226,6 +229,9 @@ struct VskSoundPlayer {
 
     void beep(int i);
     bool is_beeping();
+
+    void register_special_action(int action_no, VskSpecialActionFn fn = nullptr);
+    void do_special_action(int action_no);
 
 protected:
     ALuint  m_beep_buffer;
