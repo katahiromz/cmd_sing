@@ -153,9 +153,11 @@ retry:;
             --level;
             std::vector<VskSingItem> sub(items.begin() + k + 1, items.begin() + i);
             items.erase(items.begin() + n, items.begin() + i + 1);
-            for (int m = 0; m < repeat; ++m) {
-                items.insert(items.begin() + k - 1, sub.begin(), sub.end());
-            }
+			for (int m = 0; m < repeat; ++m) {
+				auto insert_position = k - 1 <= items.size() ?
+					items.begin() + (k - 1) : items.end();
+				items.insert(insert_position, sub.begin(), sub.end());
+			}
             goto retry; // ‚P‚Â“WŠJ‚µ‚½‚çÅ‰‚©‚ç‚â‚è’¼‚·
         }
     }
