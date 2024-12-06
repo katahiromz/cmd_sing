@@ -40,7 +40,7 @@
 
 enum SpecialKeys {
     KEY_REST = -1,          // 休符のキー
-	KEY_SPECIAL_ACTION = -2 // スペシャルアクションのキー
+    KEY_SPECIAL_ACTION = -2 // スペシャルアクションのキー
 };
 
 struct VskNote {
@@ -74,7 +74,7 @@ struct VskNote {
         m_volume = volume;
         m_quantity = quantity;
         m_and = and_;
-		m_action_no = action_no;
+        m_action_no = action_no;
     }
 
     float get_sec(int tempo, float length) const;
@@ -168,10 +168,10 @@ struct VskPhrase {
     }
     void add_action_node(char note, int action_no)
 	{
-		m_notes.emplace_back(
-			m_setting.m_tempo, m_setting.m_octave,
-			m_setting.m_tone, note, false, 0, 0, m_setting.m_volume,
-			m_setting.m_quantity, false, action_no);
+        m_notes.emplace_back(
+            m_setting.m_tempo, m_setting.m_octave,
+            m_setting.m_tone, note, false, 0, 0, m_setting.m_volume,
+            m_setting.m_quantity, false, action_no);
 	}
     void add_key(int key) {
         add_key(key, false);
@@ -226,7 +226,7 @@ struct VskSoundPlayer {
     std::unordered_map<int, VskScoreBlock>      m_async_sound_map;
     static int                                  m_next_async_sound_id;
     std::unordered_map<int, VskSpecialActionFn> m_action_no_to_special_action;
-	std::vector<std::pair<float, int>>          m_gate_to_special_action_no;
+    std::vector<std::pair<float, int>>          m_gate_to_special_action_no;
 
     VskSoundPlayer() : m_playing_music(false),
                        m_stopping_event(false, false) { init_beep(); }
@@ -247,7 +247,7 @@ struct VskSoundPlayer {
     void register_special_action(int action_no, VskSpecialActionFn fn = nullptr);
     void do_special_action(int action_no);
 
-	void schedule_special_action(float gate, int action_no);
+    void schedule_special_action(float gate, int action_no);
 
 protected:
     ALuint  m_beep_buffer;
