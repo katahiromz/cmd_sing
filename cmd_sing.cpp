@@ -115,8 +115,13 @@ bool vsk_phrase_from_sing_items(std::shared_ptr<VskPhrase> phrase, const std::ve
             phrase->add_note(ch, item.m_dot, length, item.m_sign);
             continue;
         case 'X':
-            // 画面表示
-            break;
+            // スペシャルアクション
+            if (auto ast = vsk_get_sing_param(item)) {
+                int action_no = ast->to_int();
+                phrase->add_action_node(ch, action_no);
+                continue;
+            }
+            return false;
         }
     }
     return true;

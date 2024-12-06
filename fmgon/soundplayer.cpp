@@ -187,7 +187,12 @@ float VskNote::get_sec(int tempo, float length) const {
 } // VskNote::get_sec
 
 void VskNote::set_key_from_char(char ch) {
-    if ((ch != 'R') && (ch != 0)) {
+    if (ch == 'R' || ch == 0) {
+        m_key = KEY_REST;
+    }
+    else if (ch == 'X') {
+        m_key = KEY_SPECIAL_ACTION;
+    } else {
         static const char keys[KEY_NUM + 1] = "C+D+EF+G+A+B";
 
         const char *ptr = strchr(keys, ch);
@@ -213,8 +218,6 @@ void VskNote::set_key_from_char(char ch) {
         default:
             break;
         }
-    } else {
-        m_key = -1;
     }
 } // VskNote::char_to_key
 
@@ -353,8 +356,13 @@ void VskPhrase::realize(VskSoundPlayer *player) {
         ym.set_tone_or_noise(ch, TONE_MODE);
 
         for (auto& note : m_notes) {
+            if (note.m_key == KEY_SPECIAL_ACTION) {
+				player->schedule_special_action(note.m_gate, note.m_action_no);
+                continue;
+            }
+
             // do key on
-            if (note.m_key != -1) {
+            if (note.m_key != KEY_REST) {
                 ym.set_pitch(ch, note.m_octave, note.m_key);
                 ym.set_volume(ch, int(note.m_volume));
                 ym.note_on(ch);
@@ -552,6 +560,11 @@ void VskSoundPlayer::do_special_action(int action_no)
         (*fn)(action_no);
     else
         std::printf("special action %d\n", action_no);
+}
+
+void VskSoundPlayer::schedule_special_action(float gate, int action_no)
+{
+	m_gate_to_special_action_no.push_back(std::make_pair(gate, action_no));
 }
 
 //////////////////////////////////////////////////////////////////////////////
