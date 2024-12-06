@@ -234,6 +234,10 @@ void VskPhrase::destroy() {
     }
 } // VskPhrase::destroy
 
+void VskPhrase::schedule_special_action(float gate, int action_no) {
+    m_gate_to_special_action_no.push_back(std::make_pair(gate, action_no));
+}
+
 void VskPhrase::rescan_notes() {
     std::vector<VskNote> new_notes;
     for (size_t i = 0; i < m_notes.size(); ++i) {
@@ -357,7 +361,7 @@ void VskPhrase::realize(VskSoundPlayer *player) {
 
         for (auto& note : m_notes) {
             if (note.m_key == KEY_SPECIAL_ACTION) {
-                player->schedule_special_action(note.m_gate, note.m_action_no);
+                schedule_special_action(note.m_gate, note.m_action_no);
                 continue;
             }
 
@@ -560,11 +564,6 @@ void VskSoundPlayer::do_special_action(int action_no)
         (*fn)(action_no);
     else
         std::printf("special action %d\n", action_no);
-}
-
-void VskSoundPlayer::schedule_special_action(float gate, int action_no)
-{
-    m_gate_to_special_action_no.push_back(std::make_pair(gate, action_no));
 }
 
 //////////////////////////////////////////////////////////////////////////////

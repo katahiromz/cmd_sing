@@ -123,11 +123,12 @@ struct VskSoundSetting {
 struct VskSoundPlayer;
 
 struct VskPhrase {
-    float                           m_goal = 0;
-    ALuint                          m_buffer = -1;
-    ALuint                          m_source = -1;
-    VskSoundSetting                 m_setting;
-    std::vector<VskNote>            m_notes;
+    float                               m_goal = 0;
+    ALuint                              m_buffer = -1;
+    ALuint                              m_source = -1;
+    VskSoundSetting                     m_setting;
+    std::vector<VskNote>                m_notes;
+    std::vector<std::pair<float, int>>  m_gate_to_special_action_no;
 
     VskPhrase() { }
     VskPhrase(const VskSoundSetting& setting) : m_setting(setting) { }
@@ -200,6 +201,8 @@ struct VskPhrase {
         m_notes.push_back(note);
     }
 
+    void schedule_special_action(float gate, int action_no);
+
     void rescan_notes();
     void calc_total();
     void realize(VskSoundPlayer *player);
@@ -226,7 +229,6 @@ struct VskSoundPlayer {
     std::unordered_map<int, VskScoreBlock>      m_async_sound_map;
     static int                                  m_next_async_sound_id;
     std::unordered_map<int, VskSpecialActionFn> m_action_no_to_special_action;
-    std::vector<std::pair<float, int>>          m_gate_to_special_action_no;
 
     VskSoundPlayer() : m_playing_music(false),
                        m_stopping_event(false, false) { init_beep(); }
@@ -246,8 +248,6 @@ struct VskSoundPlayer {
 
     void register_special_action(int action_no, VskSpecialActionFn fn = nullptr);
     void do_special_action(int action_no);
-
-    void schedule_special_action(float gate, int action_no);
 
 protected:
     ALuint  m_beep_buffer;
