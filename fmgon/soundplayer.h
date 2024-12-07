@@ -128,6 +128,8 @@ struct VskPhrase {
     ALuint                              m_source = -1;
     VskSoundSetting                     m_setting;
     std::vector<VskNote>                m_notes;
+
+    VskSoundPlayer*                     m_player;
     std::vector<std::pair<float, int>>  m_gate_to_special_action_no;
 
     VskPhrase() { }
@@ -202,6 +204,7 @@ struct VskPhrase {
     }
 
     void schedule_special_action(float gate, int action_no);
+    void execute_special_actions();
 
     void rescan_notes();
     void calc_total();
