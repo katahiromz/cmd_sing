@@ -238,6 +238,37 @@ void VskPhrase::schedule_special_action(float gate, int action_no) {
     m_gate_to_special_action_no.push_back(std::make_pair(gate, action_no));
 }
 
+void VskPhrase::execute_special_actions() {
+    assert(m_player);
+
+    unboost::thread(
+        [this](int dummy) {
+            float last_gate = 0.0f;
+
+            for (auto& pair : m_gate_to_special_action_no) {
+                auto gate = pair.first;
+                auto action_no = pair.second;
+
+                if (!m_player->wait_for_stop((gate - last_gate) * 1000)) {
+                    break;
+                }
+
+                if (m_player) {
+                    unboost::thread(
+                        [this, action_no](int dummy) {
+                            m_player->do_special_action(action_no);
+                        },
+                        0
+                    ).detach();
+                }
+
+                last_gate = gate;
+            }
+        },
+        0
+    ).detach();
+}
+
 void VskPhrase::rescan_notes() {
     std::vector<VskNote> new_notes;
     for (size_t i = 0; i < m_notes.size(); ++i) {
@@ -276,6 +307,8 @@ void VskPhrase::realize(VskSoundPlayer *player) {
     destroy();
     calc_total();
     rescan_notes();
+
+    m_player = player;
 
     // Initialize YM2203
     YM2203& ym = player->m_ym;
@@ -478,6 +511,7 @@ void VskSoundPlayer::play(VskScoreBlock& block) {
                 for (auto& phrase : phrases) {
                     if (phrase) {
                         alSourcePlay(phrase->m_source);
+                        phrase->execute_special_actions();
                     }
                 }
 
