@@ -243,6 +243,8 @@ void VskPhrase::execute_special_actions() {
 
     unboost::thread(
         [this](int dummy) {
+            m_remaining_actions = int(m_gate_to_special_action_no.size());
+
             float last_gate = 0.0f;
 
             for (auto& pair : m_gate_to_special_action_no) {
@@ -256,6 +258,7 @@ void VskPhrase::execute_special_actions() {
                 if (m_player) {
                     unboost::thread(
                         [this, action_no](int dummy) {
+                            m_remaining_actions--;
                             m_player->do_special_action(action_no);
                         },
                         0
@@ -516,7 +519,18 @@ void VskSoundPlayer::play(VskScoreBlock& block) {
                 }
 
                 auto msec = uint32_t(goal * 1000.0);
-                m_stopping_event.wait_for_event(msec);
+                if (m_stopping_event.wait_for_event(msec)) {
+                    int remaining_actions;
+                    do {
+                        remaining_actions = 0;
+                        for (auto& phrase : phrases) {
+                            if (phrase) {
+                                remaining_actions += phrase->m_remaining_actions;
+                            }
+                        }
+                        alutSleep(remaining_actions * 0.005);
+                    } while (remaining_actions > 0);
+                }
             }
             if (m_playing_music) {
                 m_playing_music = false;
