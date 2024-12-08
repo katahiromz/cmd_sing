@@ -126,39 +126,48 @@ bool vsk_phrase_from_sing_items(std::shared_ptr<VskPhrase> phrase, const std::ve
 bool vsk_expand_sing_items_repeat(std::vector<VskSingItem>& items)
 {
 retry:;
-    size_t k = VskString::npos, n = VskString::npos;
     int level = 0, repeat = 0;
-    for (size_t i = 0; i < items.size(); ++i)
-    {
-        if (items[i].m_subcommand == "RP") { // 繰り返し（repeat）
-            auto ast = vsk_get_sing_param(items[i]);
-            repeat = ast->to_int();
-            if (repeat < 0) { // マイナスの繰り返しはおかしい
-                assert(0);
+    auto it_repeat = items.end();
+    for (auto it = items.begin(); it != items.end(); ++it) {
+        if (it->m_subcommand == "RP") { // 繰り返し（repeat）
+            if (auto ast = vsk_get_sing_param(*it)) {
+                repeat = ast->to_int();
+                if (repeat < 0 || 255 < repeat) {
+                    assert(0);
+                    return false;
+                }
+                it_repeat = it; // RPのある位置を覚えておく
+                ++it;
+                if (it == items.end()) {
+                    assert(0);
+                    return false;
+                }
+                if (it->m_subcommand == "[") { // 繰り返しの始まり
+                    ++level;
+                    if (level >= 8) {
+                        assert(0);
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else {
                 return false;
             }
-            n = i;
             continue;
         }
-        if (items[i].m_subcommand == "[") { // 繰り返しのカッコはじめ
-            if (n == VskString::npos) {
-                assert(0);
-                return false;
-            }
-            k = i;
-            ++level;
-            continue;
-        }
-        if (items[i].m_subcommand == "]") { // 繰り返しのカッコ終わり
+        if (it->m_subcommand == "]") { // 繰り返しの終わり
             --level;
-            std::vector<VskSingItem> sub(items.begin() + k + 1, items.begin() + i);
-            items.erase(items.begin() + n, items.begin() + i + 1);
-			for (int m = 0; m < repeat; ++m) {
-				auto insert_position = k - 1 <= items.size() ?
-					items.begin() + (k - 1) : items.end();
-				items.insert(insert_position, sub.begin(), sub.end());
-			}
-            goto retry; // １つ展開したら最初からやり直す
+            if (it_repeat == items.end()) {
+                assert(0);
+                return false;
+            }
+            std::vector<VskSingItem> sub(it_repeat + 2, it);
+            auto insert_position = items.erase(it_repeat, it + 1);
+            for (int m = 0; m < repeat; ++m) {
+                insert_position = items.insert(insert_position, sub.begin(), sub.end());
+            }
+            goto retry; // 一回展開したら最初からやり直し
         }
     }
     return true;
