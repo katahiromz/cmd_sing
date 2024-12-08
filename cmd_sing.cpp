@@ -130,9 +130,9 @@ retry:;
     auto it_repeat = items.end();
     for (auto it = items.begin(); it != items.end(); ++it) {
         if (it->m_subcommand == "RP") { // 繰り返し（repeat）
-            if (auto ast = vsk_get_sing_param(*it)) {
+            if (auto ast = vsk_get_sing_param(*it)) { // RPの引数
                 repeat = ast->to_int();
-                if (repeat < 0 || 255 < repeat) {
+                if (repeat < 0 || 255 < repeat) { // 繰り返しの回数が不正？
                     assert(0);
                     return false;
                 }
@@ -140,27 +140,29 @@ retry:;
                 ++it;
                 if (it == items.end()) {
                     assert(0);
-                    return false;
+                    return false; // 文法エラー
                 }
                 if (it->m_subcommand == "[") { // 繰り返しの始まり
                     ++level;
-                    if (level >= 8) {
+                    if (level >= 8) { // 多重ループが限界を超えた？
                         assert(0);
-                        return false;
+                        return false; // 不正
                     }
-                } else {
-                    return false;
+                } else { // 繰り返しの始まりがなかった？
+                    assert(0);
+                    return false; // 文法エラー
                 }
-            } else {
-                return false;
+            } else { // 引数がなかった？
+                assert(0);
+                return false; // 文法エラー
             }
             continue;
         }
         if (it->m_subcommand == "]") { // 繰り返しの終わり
             --level;
-            if (it_repeat == items.end()) {
+            if (it_repeat == items.end()) { // 繰り返しの始まりがなかった？
                 assert(0);
-                return false;
+                return false; // 文法エラー
             }
             std::vector<VskSingItem> sub(it_repeat + 2, it);
             auto insert_position = items.erase(it_repeat, it + 1);
@@ -170,7 +172,7 @@ retry:;
             goto retry; // 一回展開したら最初からやり直し
         }
     }
-    return true;
+    return true; // 成功
 } // vsk_expand_sing_items_repeat
 
 // 文字列からCMD SINGの項目を取得する
