@@ -131,6 +131,7 @@ struct VskPhrase {
 
     VskSoundPlayer*                     m_player;
     std::vector<std::pair<float, int>>  m_gate_to_special_action_no;
+    int                                 m_remaining_actions;
 
     VskPhrase() { }
     VskPhrase(const VskSoundSetting& setting) : m_setting(setting) { }
