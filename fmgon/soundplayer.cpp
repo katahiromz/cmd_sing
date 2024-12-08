@@ -241,10 +241,10 @@ void VskPhrase::schedule_special_action(float gate, int action_no) {
 void VskPhrase::execute_special_actions() {
     assert(m_player);
 
+    m_remaining_actions = int(m_gate_to_special_action_no.size());
+
     unboost::thread(
         [this](int dummy) {
-            m_remaining_actions = int(m_gate_to_special_action_no.size());
-
             float last_gate = 0.0f;
 
             for (auto& pair : m_gate_to_special_action_no) {
