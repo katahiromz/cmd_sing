@@ -271,12 +271,10 @@ bool vsk_sing_items_from_string(std::vector<VskSingItem>& items, const VskString
                 while (!scanner.eof()) {
                     ch = scanner.getch();
                     if (!vsk_isdigit(ch)) {
+                        scanner.ungetch();
                         break;
                     }
                     item.m_param.push_back(ch);
-                }
-                if (!scanner.eof()) {
-                    scanner.ungetch();
                 }
             }
         }
