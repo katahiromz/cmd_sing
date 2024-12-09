@@ -171,7 +171,7 @@ struct VskPhrase {
             quantity, and_);
     }
     void add_action_node(char note, int action_no)
-	{
+    {
         m_notes.emplace_back(
             m_setting.m_tempo, m_setting.m_octave,
             m_setting.m_tone, note, false, 0, 0, m_setting.m_volume,
