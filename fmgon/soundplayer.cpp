@@ -241,29 +241,39 @@ void VskPhrase::schedule_special_action(float gate, int action_no) {
 void VskPhrase::execute_special_actions() {
     assert(m_player);
 
+    // c‚è‚Ì–¢Às‚ÌƒAƒNƒVƒ‡ƒ“”‚ğİ’è
+    // “ü—Í‚ª"CDX0X1"‚È‚Ç‚ÅÄ¶Š®—¹Œã‚ÉƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚ğÀs‚·‚é‰„’·ŠÔ‚Ì’²®‚Ég—p‚³‚ê‚é
     m_remaining_actions = int(m_gate_to_special_action_no.size());
 
+    // gate‚É‡‚í‚¹‚ÄƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚ğÀs‚·‚é‚½‚ß‚Ì§ŒäƒXƒŒƒbƒh
     unboost::thread(
         [this](int dummy) {
-            // å‰å›å®Ÿè¡Œã—ãŸã‚¹ãƒšã‚·ãƒ£ãƒ«ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã®gateã‚’ä¿æŒã€åˆæœŸå€¤ã¯0
+            // ‘O‰ñÀs‚µ‚½ƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚Ìgate‚ğ•ÛA‰Šú’l‚Í0
+            // gateAlast_gate‚Í•b‚ğ¬”“_‚Å•\‚µ‚Ä‚¢‚Ü‚·
             float last_gate = 0;
 
+            // ƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚Ìgate‚Æaction_no‚ğvector‚©‚çæ‚èo‚µ‚ÄÀs
+            // ‡”Ô’Ê‚è‚Åvector‚É’Ç‰Á‚µ‚½‚½‚ßA‡”Ô‚Í•ÛØ‚³‚ê‚Ä‚¢‚é
+            // “¯‚¶gate’l‚ğ‚à‚Âê‡‚à‚ ‚é
             for (auto& pair : m_gate_to_special_action_no) {
+                // gate‚Í•b‚ğ¬”“_‚Å•\‚µ‚Ä‚¢‚Ü‚·
                 auto gate = pair.first;
                 auto action_no = pair.second;
 
+                // ‘O‚Ìgate‚©‚ç‚Ì‘Ò‹@ŠÔ‚ğŒvZ‚µ‚Ä‘Ò‹@
                 if (!m_player->wait_for_stop((gate - last_gate) * 1000)) {
+                    // ‘Ò‹@’†‚Éstop‚³‚ê‚½ê‡Aƒ‹[ƒv‚ğ”²‚¯‚é
                     break;
                 }
 
-                // ã‚¹ãƒšã‚·ãƒ£ãƒ«ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚’åˆ¥ã®ã‚¹ãƒ¬ãƒƒãƒ‰ã§å®Ÿè¡Œ
+                // ƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚ğ•Ê‚ÌƒXƒŒƒbƒh‚ÅÀs
                 unboost::thread(
                     [this, action_no](int dummy) {
                         m_player->do_special_action(action_no);
                     },
                     0
                 ).detach();
-                // æ®‹ã‚Šã®æœªå®Ÿè¡Œã®ã‚¢ã‚¯ã‚·ãƒ§ãƒ³æ•°ã‚’ã‚’æ¸›ã‚‰ã™
+                // c‚è‚Ì–¢Às‚ÌƒAƒNƒVƒ‡ƒ“”‚ğ‚ğŒ¸‚ç‚·
                 m_remaining_actions--;
 
                 last_gate = gate;
