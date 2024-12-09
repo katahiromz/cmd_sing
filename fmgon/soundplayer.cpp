@@ -245,7 +245,8 @@ void VskPhrase::execute_special_actions() {
 
     unboost::thread(
         [this](int dummy) {
-            float last_gate = 0.0f;
+            // 前回実行したスペシャルアクションのgateを保持、初期値は0
+            float last_gate = 0;
 
             for (auto& pair : m_gate_to_special_action_no) {
                 auto gate = pair.first;
