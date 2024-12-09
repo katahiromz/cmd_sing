@@ -255,15 +255,15 @@ void VskPhrase::execute_special_actions() {
                     break;
                 }
 
-                if (m_player) {
-                    unboost::thread(
-                        [this, action_no](int dummy) {
-                            m_remaining_actions--;
-                            m_player->do_special_action(action_no);
-                        },
-                        0
-                    ).detach();
-                }
+                // スペシャルアクションを別のスレッドで実行
+                unboost::thread(
+                    [this, action_no](int dummy) {
+                        m_player->do_special_action(action_no);
+                    },
+                    0
+                ).detach();
+                // 残りの未実行のアクション数をを減らす
+                m_remaining_actions--;
 
                 last_gate = gate;
             }
