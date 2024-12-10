@@ -13,3 +13,4 @@ const char *vsk_get_openal_error(int error);
 void vsk_print_openal_error(int error);
 
 bool vsk_sound_cmd_sing(const VskString& str);
+bool vsk_sound_voice_reg(int addr, int data);

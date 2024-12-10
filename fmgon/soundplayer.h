@@ -233,6 +233,10 @@ struct VskSoundPlayer {
     void register_special_action(int action_no, VskSpecialActionFn fn = nullptr);
     void do_special_action(int action_no);
 
+    void write_reg(uint32_t addr, uint32_t data) {
+        m_ym.write_reg(addr, data);
+    }
+
 protected:
     ALuint  m_beep_buffer;
     ALuint  m_beep_source;

@@ -87,3 +87,13 @@ void vsk_print_openal_error(int error)
 {
     std::printf(vsk_get_openal_error(error));
 }
+
+// OPNのレジスタにデータを設定する
+bool vsk_sound_voice_reg(int addr, int data)
+{
+    if (vsk_sound_player) {
+        vsk_sound_player->write_reg(addr, data);
+        return true;
+    }
+    return false;
+}

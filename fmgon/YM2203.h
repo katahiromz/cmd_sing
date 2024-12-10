@@ -123,6 +123,10 @@ struct YM2203 {
     // FM APIs
     void set_timbre(int ch, YM2203_Timbre *timbre);
 
+    void write_reg(uint32_t addr, uint32_t data) {
+        m_opna.SetReg(addr, data);
+    }
+
 protected:
     FM::OPNA        m_opna;
     YM2203_Timbre * m_fm_timbres[FM_CH_NUM];
@@ -131,10 +135,6 @@ protected:
     uint8_t         m_ssg_tone_noise[SSG_CH_NUM];
     uint8_t         m_ssg_key_on;
     uint8_t         m_ssg_envelope_type;
-
-    void write_reg(uint32_t addr, uint32_t data) {
-        m_opna.SetReg(addr, data);
-    }
 
     static const uint16_t FM_PITCH_TABLE[KEY_NUM];
     static const uint16_t SSG_PITCH_TABLE[KEY_NUM];
