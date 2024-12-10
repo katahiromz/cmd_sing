@@ -176,7 +176,7 @@ struct VskPhrase {
             m_setting.m_tempo, m_setting.m_octave,
             m_setting.m_tone, note, false, 0, 0, m_setting.m_volume,
             m_setting.m_quantity, false, action_no);
-	}
+    }
     void add_key(int key) {
         add_key(key, false);
     }
