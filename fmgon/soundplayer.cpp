@@ -243,7 +243,7 @@ void VskPhrase::execute_special_actions() {
 
     // 残りの未実行のアクション数を設定
     // 入力が"CDX0X1"などで再生完了後にスペシャルアクションを実行する延長時間の調整に使用される
-    m_remaining_actions = int(m_gate_to_special_action_no.size());
+    m_remaining_actions = m_gate_to_special_action_no.size();
 
     // gateに合わせてスペシャルアクションを実行するための制御スレッド
     unboost::thread(
@@ -531,7 +531,7 @@ void VskSoundPlayer::play(VskScoreBlock& block) {
 
                 auto msec = uint32_t(goal * 1000.0);
                 if (m_stopping_event.wait_for_event(msec)) {
-                    int remaining_actions;
+                    size_t remaining_actions;
                     do {
                         remaining_actions = 0;
                         for (auto& phrase : phrases) {
