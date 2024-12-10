@@ -6,6 +6,7 @@
 #include "fmgon.h"
 #include "soundplayer.h"
 #include "AL/alut.h"
+#include <map>
 
 #define CLOCK       8000000
 #define SAMPLERATE  44100
@@ -257,13 +258,20 @@ void VskPhrase::execute_special_actions() {
             // gate、last_gateは秒を小数点で表しています
             float last_gate = 0;
 
-            // スペシャルアクションのgateとaction_noをvectorから取り出して実行
-            // 順番通りでvectorに追加したため、順番は保証されている
-            // 同じgate値をもつ場合もある
-            for (auto& pair : m_gate_to_special_action_no) {
+            // gateが同じスペシャルアクションをまとめる
+            std::map<float, std::vector<int>> gate_to_actions;
+            for (const auto& pair : m_gate_to_special_action_no) {
+                gate_to_actions[pair.first].push_back(pair.second);
+            }
+
+            // スペシャルアクションをgateごとにまとめて実行
+            // std::mapのiteratorはkeyの昇順でiterateするし、
+            // アクションも順番通りでvectorに追加したため、順番は保証されている
+            for (auto it = gate_to_actions.begin(); it != gate_to_actions.end(); ++it) {
                 // gateは秒を小数点で表しています
-                auto gate = pair.first;
-                auto action_no = pair.second;
+                auto gate = it->first;
+                // gateが同じスペシャルアクションのvector
+                auto action_numbers = it->second;
 
                 // 前のgateからの待機時間を計算して待機
                 if (!m_player->wait_for_stop((gate - last_gate) * 1000)) {
@@ -273,13 +281,16 @@ void VskPhrase::execute_special_actions() {
 
                 // スペシャルアクションを別のスレッドで実行
                 unboost::thread(
-                    [this, action_no](int dummy) {
-                        m_player->do_special_action(action_no);
+                    [this, action_numbers](int dummy) {
+                        // gateが同じスペシャルアクションをループ実行
+                        for (const auto& action_no : action_numbers) {
+                            m_player->do_special_action(action_no);
+                        }
                     },
                     0
                 ).detach();
                 // 残りの未実行のアクション数をを減らす
-                m_remaining_actions--;
+                m_remaining_actions -= action_numbers.size();
 
                 last_gate = gate;
             }
