@@ -245,6 +245,11 @@ void VskPhrase::execute_special_actions() {
     // 入力が"CDX0X1"などで再生完了後にスペシャルアクションを実行する延長時間の調整に使用される
     m_remaining_actions = m_gate_to_special_action_no.size();
 
+    // アクションがない場合は何もしない
+    if (m_remaining_actions == 0) {
+        return;
+    }
+
     // gateに合わせてスペシャルアクションを実行するための制御スレッド
     unboost::thread(
         [this](int dummy) {
