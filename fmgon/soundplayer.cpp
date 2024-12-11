@@ -6,6 +6,7 @@
 #include "fmgon.h"
 #include "soundplayer.h"
 #include "AL/alut.h"
+#include <map>
 
 #define CLOCK       8000000
 #define SAMPLERATE  44100
@@ -187,7 +188,12 @@ float VskNote::get_sec(int tempo, float length) const {
 } // VskNote::get_sec
 
 void VskNote::set_key_from_char(char ch) {
-    if ((ch != 'R') && (ch != 0)) {
+    if (ch == 'R' || ch == 0) {
+        m_key = KEY_REST;
+    }
+    else if (ch == 'X') {
+        m_key = KEY_SPECIAL_ACTION;
+    } else {
         static const char keys[KEY_NUM + 1] = "C+D+EF+G+A+B";
 
         const char *ptr = strchr(keys, ch);
@@ -213,8 +219,6 @@ void VskNote::set_key_from_char(char ch) {
         default:
             break;
         }
-    } else {
-        m_key = -1;
     }
 } // VskNote::char_to_key
 
@@ -230,6 +234,70 @@ void VskPhrase::destroy() {
         m_source = ALuint(-1);
     }
 } // VskPhrase::destroy
+
+void VskPhrase::schedule_special_action(float gate, int action_no) {
+    m_gate_to_special_action_no.push_back(std::make_pair(gate, action_no));
+}
+
+void VskPhrase::execute_special_actions() {
+    assert(m_player);
+
+    // 残りの未実行のアクション数を設定
+    // 入力が"CDX0X1"などで再生完了後にスペシャルアクションを実行する延長時間の調整に使用される
+    m_remaining_actions = m_gate_to_special_action_no.size();
+
+    // アクションがない場合は何もしない
+    if (m_remaining_actions == 0) {
+        return;
+    }
+
+    // gateに合わせてスペシャルアクションを実行するための制御スレッド
+    unboost::thread(
+        [this](int dummy) {
+            // 前回実行したスペシャルアクションのgateを保持、初期値は0
+            // gate、last_gateは秒を小数点で表しています
+            float last_gate = 0;
+
+            // gateが同じスペシャルアクションをまとめる
+            std::map<float, std::vector<int>> gate_to_actions;
+            for (const auto& pair : m_gate_to_special_action_no) {
+                gate_to_actions[pair.first].push_back(pair.second);
+            }
+
+            // スペシャルアクションをgateごとにまとめて実行
+            // std::mapのiteratorはkeyの昇順でiterateするし、
+            // アクションも順番通りでvectorに追加したため、順番は保証されている
+            for (auto& pair2 : gate_to_actions) {
+                // gate�͕b�������_�ŕ\���Ă��܂�
+                auto gate = pair2.first;
+                // gate�������X�y�V�����A�N�V������vector
+                auto action_numbers = pair2.second;
+
+                // 前のgateからの待機時間を計算して待機
+                if (!m_player->wait_for_stop((gate - last_gate) * 1000)) {
+                    // 待機中にstopされた場合、ループを抜ける
+                    break;
+                }
+
+                // スペシャルアクションを別のスレッドで実行
+                unboost::thread(
+                    [this, action_numbers](int dummy) {
+                        // gateが同じスペシャルアクションをループ実行
+                        for (const auto& action_no : action_numbers) {
+                            m_player->do_special_action(action_no);
+                        }
+                    },
+                    0
+                ).detach();
+                // 残りの未実行のアクション数をを減らす
+                m_remaining_actions -= action_numbers.size();
+
+                last_gate = gate;
+            }
+        },
+        0
+    ).detach();
+}
 
 void VskPhrase::rescan_notes() {
     std::vector<VskNote> new_notes;
@@ -269,6 +337,8 @@ void VskPhrase::realize(VskSoundPlayer *player) {
     destroy();
     calc_total();
     rescan_notes();
+
+    m_player = player;
 
     // Initialize YM2203
     YM2203& ym = player->m_ym;
@@ -353,8 +423,13 @@ void VskPhrase::realize(VskSoundPlayer *player) {
         ym.set_tone_or_noise(ch, TONE_MODE);
 
         for (auto& note : m_notes) {
+            if (note.m_key == KEY_SPECIAL_ACTION) {
+                schedule_special_action(note.m_gate, note.m_action_no);
+                continue;
+            }
+
             // do key on
-            if (note.m_key != -1) {
+            if (note.m_key != KEY_REST) {
                 ym.set_pitch(ch, note.m_octave, note.m_key);
                 ym.set_volume(ch, int(note.m_volume));
                 ym.note_on(ch);
@@ -466,11 +541,23 @@ void VskSoundPlayer::play(VskScoreBlock& block) {
                 for (auto& phrase : phrases) {
                     if (phrase) {
                         alSourcePlay(phrase->m_source);
+                        phrase->execute_special_actions();
                     }
                 }
 
                 auto msec = uint32_t(goal * 1000.0);
-                m_stopping_event.wait_for_event(msec);
+                if (m_stopping_event.wait_for_event(msec)) {
+                    size_t remaining_actions;
+                    do {
+                        remaining_actions = 0;
+                        for (auto& phrase : phrases) {
+                            if (phrase) {
+                                remaining_actions += phrase->m_remaining_actions;
+                            }
+                        }
+                        alutSleep(remaining_actions * 0.005);
+                    } while (remaining_actions > 0);
+                }
             }
             if (m_playing_music) {
                 m_playing_music = false;
