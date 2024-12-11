@@ -242,54 +242,54 @@ void VskPhrase::schedule_special_action(float gate, int action_no) {
 void VskPhrase::execute_special_actions() {
     assert(m_player);
 
-    // c‚è‚Ì–¢Às‚ÌƒAƒNƒVƒ‡ƒ“”‚ğİ’è
-    // “ü—Í‚ª"CDX0X1"‚È‚Ç‚ÅÄ¶Š®—¹Œã‚ÉƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚ğÀs‚·‚é‰„’·ŠÔ‚Ì’²®‚Ég—p‚³‚ê‚é
+    // æ®‹ã‚Šã®æœªå®Ÿè¡Œã®ã‚¢ã‚¯ã‚·ãƒ§ãƒ³æ•°ã‚’è¨­å®š
+    // å…¥åŠ›ãŒ"CDX0X1"ãªã©ã§å†ç”Ÿå®Œäº†å¾Œã«ã‚¹ãƒšã‚·ãƒ£ãƒ«ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚’å®Ÿè¡Œã™ã‚‹å»¶é•·æ™‚é–“ã®èª¿æ•´ã«ä½¿ç”¨ã•ã‚Œã‚‹
     m_remaining_actions = m_gate_to_special_action_no.size();
 
-    // ƒAƒNƒVƒ‡ƒ“‚ª‚È‚¢ê‡‚Í‰½‚à‚µ‚È‚¢
+    // ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ãŒãªã„å ´åˆã¯ä½•ã‚‚ã—ãªã„
     if (m_remaining_actions == 0) {
         return;
     }
 
-    // gate‚É‡‚í‚¹‚ÄƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚ğÀs‚·‚é‚½‚ß‚Ì§ŒäƒXƒŒƒbƒh
+    // gateã«åˆã‚ã›ã¦ã‚¹ãƒšã‚·ãƒ£ãƒ«ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚’å®Ÿè¡Œã™ã‚‹ãŸã‚ã®åˆ¶å¾¡ã‚¹ãƒ¬ãƒƒãƒ‰
     unboost::thread(
         [this](int dummy) {
-            // ‘O‰ñÀs‚µ‚½ƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚Ìgate‚ğ•ÛA‰Šú’l‚Í0
-            // gateAlast_gate‚Í•b‚ğ¬”“_‚Å•\‚µ‚Ä‚¢‚Ü‚·
+            // å‰å›å®Ÿè¡Œã—ãŸã‚¹ãƒšã‚·ãƒ£ãƒ«ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã®gateã‚’ä¿æŒã€åˆæœŸå€¤ã¯0
+            // gateã€last_gateã¯ç§’ã‚’å°æ•°ç‚¹ã§è¡¨ã—ã¦ã„ã¾ã™
             float last_gate = 0;
 
-            // gate‚ª“¯‚¶ƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚ğ‚Ü‚Æ‚ß‚é
+            // gateãŒåŒã˜ã‚¹ãƒšã‚·ãƒ£ãƒ«ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚’ã¾ã¨ã‚ã‚‹
             std::map<float, std::vector<int>> gate_to_actions;
             for (const auto& pair : m_gate_to_special_action_no) {
                 gate_to_actions[pair.first].push_back(pair.second);
             }
 
-            // ƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚ğgate‚²‚Æ‚É‚Ü‚Æ‚ß‚ÄÀs
-            // std::map‚Ìiterator‚Íkey‚Ì¸‡‚Åiterate‚·‚é‚µA
-            // ƒAƒNƒVƒ‡ƒ“‚à‡”Ô’Ê‚è‚Åvector‚É’Ç‰Á‚µ‚½‚½‚ßA‡”Ô‚Í•ÛØ‚³‚ê‚Ä‚¢‚é
-            for (auto it = gate_to_actions.begin(); it != gate_to_actions.end(); ++it) {
-                // gate‚Í•b‚ğ¬”“_‚Å•\‚µ‚Ä‚¢‚Ü‚·
-                auto gate = it->first;
-                // gate‚ª“¯‚¶ƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚Ìvector
-                auto action_numbers = it->second;
+            // ã‚¹ãƒšã‚·ãƒ£ãƒ«ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚’gateã”ã¨ã«ã¾ã¨ã‚ã¦å®Ÿè¡Œ
+            // std::mapã®iteratorã¯keyã®æ˜‡é †ã§iterateã™ã‚‹ã—ã€
+            // ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚‚é †ç•ªé€šã‚Šã§vectorã«è¿½åŠ ã—ãŸãŸã‚ã€é †ç•ªã¯ä¿è¨¼ã•ã‚Œã¦ã„ã‚‹
+            for (auto& pair2 : gate_to_actions) {
+                // gateï¿½Í•bï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½_ï¿½Å•\ï¿½ï¿½ï¿½Ä‚ï¿½ï¿½Ü‚ï¿½
+                auto gate = pair2.first;
+                // gateï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Xï¿½yï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Aï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½vector
+                auto action_numbers = pair2.second;
 
-                // ‘O‚Ìgate‚©‚ç‚Ì‘Ò‹@ŠÔ‚ğŒvZ‚µ‚Ä‘Ò‹@
+                // å‰ã®gateã‹ã‚‰ã®å¾…æ©Ÿæ™‚é–“ã‚’è¨ˆç®—ã—ã¦å¾…æ©Ÿ
                 if (!m_player->wait_for_stop((gate - last_gate) * 1000)) {
-                    // ‘Ò‹@’†‚Éstop‚³‚ê‚½ê‡Aƒ‹[ƒv‚ğ”²‚¯‚é
+                    // å¾…æ©Ÿä¸­ã«stopã•ã‚ŒãŸå ´åˆã€ãƒ«ãƒ¼ãƒ—ã‚’æŠœã‘ã‚‹
                     break;
                 }
 
-                // ƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚ğ•Ê‚ÌƒXƒŒƒbƒh‚ÅÀs
+                // ã‚¹ãƒšã‚·ãƒ£ãƒ«ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚’åˆ¥ã®ã‚¹ãƒ¬ãƒƒãƒ‰ã§å®Ÿè¡Œ
                 unboost::thread(
                     [this, action_numbers](int dummy) {
-                        // gate‚ª“¯‚¶ƒXƒyƒVƒƒƒ‹ƒAƒNƒVƒ‡ƒ“‚ğƒ‹[ƒvÀs
+                        // gateãŒåŒã˜ã‚¹ãƒšã‚·ãƒ£ãƒ«ã‚¢ã‚¯ã‚·ãƒ§ãƒ³ã‚’ãƒ«ãƒ¼ãƒ—å®Ÿè¡Œ
                         for (const auto& action_no : action_numbers) {
                             m_player->do_special_action(action_no);
                         }
                     },
                     0
                 ).detach();
-                // c‚è‚Ì–¢Às‚ÌƒAƒNƒVƒ‡ƒ“”‚ğ‚ğŒ¸‚ç‚·
+                // æ®‹ã‚Šã®æœªå®Ÿè¡Œã®ã‚¢ã‚¯ã‚·ãƒ§ãƒ³æ•°ã‚’ã‚’æ¸›ã‚‰ã™
                 m_remaining_actions -= action_numbers.size();
 
                 last_gate = gate;
