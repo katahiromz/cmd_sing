@@ -210,6 +210,8 @@ struct VskPhrase {
     void rescan_notes();
     void calc_total();
     void realize(VskSoundPlayer *player);
+    void realize(VskSoundPlayer *player, FM_SAMPLETYPE*& data, size_t& data_size);
+    bool gen_source_and_buffer(const FM_SAMPLETYPE *data, size_t data_size);
     void destroy();
 }; // struct VskPhrase
 
@@ -246,6 +248,7 @@ struct VskSoundPlayer {
     bool wait_for_stop(uint32_t milliseconds = -1);
     bool play_and_wait(VskScoreBlock& block, uint32_t milliseconds = -1);
     void stop();
+    void save_as_wav(VskScoreBlock& block, const char *filename);
 
     void beep(int i);
     bool is_beeping();

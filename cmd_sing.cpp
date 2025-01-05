@@ -325,6 +325,28 @@ bool vsk_sound_cmd_sing(const VskString& str)
     return true; // 成功
 }
 
+// CMD SING文実装の本体
+bool vsk_sound_cmd_sing_save(const VskString& str, const char *filename)
+{
+    // 文字列からCMD SINGの項目を取得する
+    std::vector<VskSingItem> items;
+    if (!vsk_sing_items_from_string(items, str))
+        return false; // 失敗
+
+    // フレーズを作成する
+    auto phrase = std::make_shared<VskPhrase>();
+    phrase->m_setting = vsk_cmd_sing_settings;
+    phrase->m_setting.m_fm = false;
+    if (!vsk_phrase_from_sing_items(phrase, items))
+        return false;
+
+    // フレーズを演奏する
+    VskScoreBlock block = { phrase };
+    vsk_sound_player->save_as_wav(block, filename);
+
+    return true; // 成功
+}
+
 #ifdef CMD_SING_EXE
 int main(int argc, char **argv)
 {
@@ -336,8 +358,16 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    vsk_sound_cmd_sing(str);
-    vsk_sound_wait(-1);
+    if (argc == 2)
+    {
+        vsk_sound_cmd_sing(str);
+        vsk_sound_wait(-1);
+    }
+    else if (argc == 3)
+    {
+        vsk_sound_cmd_sing_save(str, argv[2]);
+    }
+
     vsk_sound_exit();
 
     return 0;

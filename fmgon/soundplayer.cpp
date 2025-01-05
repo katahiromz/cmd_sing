@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////////////////////////////////
+﻿//////////////////////////////////////////////////////////////////////////////
 // soundplayer --- an fmgon sound player
 // Copyright (C) 2015 Katayama Hirofumi MZ. All Rights Reserved.
 //////////////////////////////////////////////////////////////////////////////
@@ -7,6 +7,7 @@
 #include "soundplayer.h"
 #include "AL/alut.h"
 #include <map>
+#include <fstream>
 
 #define CLOCK       8000000
 #define SAMPLERATE  44100
@@ -333,7 +334,44 @@ void VskPhrase::calc_total() {
     m_goal = gate;
 } // VskPhrase::calc_total
 
+bool VskPhrase::gen_source_and_buffer(const FM_SAMPLETYPE *data, size_t data_size) {
+    ALenum error;
+
+    // generate an OpenAL buffer
+    alGetError(); // clear error
+    alGenBuffers(1, &m_buffer);
+    assert(m_buffer != ALuint(-1));
+    error = alGetError();
+    assert(error == 0);
+
+    alGetError(); // clear error
+    alBufferData(m_buffer, AL_FORMAT_STEREO16, &data[0], data_size, SAMPLERATE);
+    error = alGetError();
+    assert(error == 0);
+
+    // generate an OpenAL source
+    alGetError(); // clear error
+    alGenSources(1, &m_source);
+    assert(m_source != ALuint(-1));
+    error = alGetError();
+    assert(error == 0);
+
+    alGetError(); // clear error
+    alSourcei(m_source, AL_BUFFER, m_buffer);
+    error = alGetError();
+    assert(error == 0);
+    return true;
+}
+
 void VskPhrase::realize(VskSoundPlayer *player) {
+    FM_SAMPLETYPE *data;
+    size_t data_size;
+    realize(player, data, data_size);
+    gen_source_and_buffer(data, data_size);
+    delete[] data;
+}
+
+void VskPhrase::realize(VskSoundPlayer *player, FM_SAMPLETYPE*& data, size_t& data_size) {
     destroy();
     calc_total();
     rescan_notes();
@@ -350,7 +388,8 @@ void VskPhrase::realize(VskSoundPlayer *player) {
     auto size = uint32_t((m_goal + 1) * SAMPLERATE * 2);
     if (size % 2 != 0) // It fails when size was an odd number
         ++size;
-    unique_ptr<FM_SAMPLETYPE[]> data(new FM_SAMPLETYPE[size]);
+    data_size = size * sizeof(FM_SAMPLETYPE);
+    data = new FM_SAMPLETYPE[size];
     std::memset(&data[0], 0, size * sizeof(FM_SAMPLETYPE));
 
     if (m_setting.m_fm) { // FM sound?
@@ -451,37 +490,38 @@ void VskPhrase::realize(VskSoundPlayer *player) {
             isample += nsamples;
         }
     }
-
-    ALenum error;
-
-    // generate an OpenAL buffer
-    alGetError(); // clear error
-    alGenBuffers(1, &m_buffer);
-    assert(m_buffer != ALuint(-1));
-    error = alGetError();
-    assert(error == 0);
-
-    alGetError(); // clear error
-    alBufferData(m_buffer, AL_FORMAT_STEREO16, &data[0], sizeof(FM_SAMPLETYPE) * size, SAMPLERATE);
-    error = alGetError();
-    assert(error == 0);
-
-    // generate an OpenAL source
-    alGetError(); // clear error
-    alGenSources(1, &m_source);
-    assert(m_source != ALuint(-1));
-    error = alGetError();
-    assert(error == 0);
-
-    alGetError(); // clear error
-    alSourcei(m_source, AL_BUFFER, m_buffer);
-    error = alGetError();
-    assert(error == 0);
 } // VskPhrase::realize
 
 //////////////////////////////////////////////////////////////////////////////
 
 /*static*/ int VskSoundPlayer::m_next_async_sound_id = 0;
+
+#define WAV_HEADER_SIZE    44
+
+static uint8_t* get_wav_header(uint32_t data_size, uint32_t clock, uint32_t sample_rate) {
+    // リニアPCM16ビット（モノラル）
+    static uint8_t wav_header_template[WAV_HEADER_SIZE] = {
+        0x52, 0x49, 0x46, 0x46,  // 'RIFF'
+        0x00, 0x00, 0x00, 0x00,  // RIFFチャンクのサイズ(size + 12 + 16 + 8)
+        0x57, 0x41, 0x56, 0x45,  // 'WAVE'
+        0x66, 0x6D, 0x74, 0x20,  // 'fmt'
+        0x10, 0x00, 0x00, 0x00,  // fmtチャンクのバイト数 = 16(リニアPCM)
+        0x01, 0x00,              // フォーマット = 1(非圧縮PCM)
+        0x01, 0x00,              // チャネル数 = 1 (モノラル) 
+        0x00, 0x00, 0x00, 0x00,  // サンプリング周波数 = sample_rate
+        0x00, 0x7D, 0x00, 0x00,  // バイト/秒 = 32000
+        0x02, 0x00,              // ブロックサイズ = 16bit x 1(モノラル) = 2byte
+        0x10, 0x00,              // ビット/サンプル = 16
+        0x64, 0x61, 0x74, 0x61,  // 'data'
+        0x00, 0x00, 0x00, 0x00   // size (データバイト数)
+    };
+    uint32_t riff_size = data_size + WAV_HEADER_SIZE - 8;
+    (uint32_t&)(wav_header_template[4]) = riff_size;
+    (uint32_t&)(wav_header_template[24]) = sizeof(uint16_t) * sample_rate;
+    (uint32_t&)(wav_header_template[28]) = clock;
+    (uint32_t&)(wav_header_template[40]) = data_size;
+    return wav_header_template;
+}
 
 bool VskSoundPlayer::wait_for_stop(uint32_t milliseconds) {
     return m_stopping_event.wait_for_event(milliseconds);
@@ -490,6 +530,26 @@ bool VskSoundPlayer::wait_for_stop(uint32_t milliseconds) {
 bool VskSoundPlayer::play_and_wait(VskScoreBlock& block, uint32_t milliseconds) {
     play(block);
     return wait_for_stop(milliseconds);
+}
+
+void VskSoundPlayer::save_as_wav(VskScoreBlock& block, const char *filename) {
+    FM_SAMPLETYPE *data = nullptr;
+    size_t data_size;
+
+    for (auto& phrase : block) {
+        if (phrase) {
+            delete[] data;
+            phrase->realize(this, data, data_size);
+        }
+    }
+
+    std::ofstream outFile(filename, std::ios::binary);
+    auto wav_header = get_wav_header(data_size, CLOCK, SAMPLERATE);
+    outFile.write((const char *)wav_header, WAV_HEADER_SIZE);
+    outFile.write((const char *)data, data_size);
+    outFile.close();
+
+    delete[] data;
 }
 
 void VskSoundPlayer::play(VskScoreBlock& block) {
