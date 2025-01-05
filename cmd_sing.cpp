@@ -301,19 +301,19 @@ bool vsk_sing_items_from_string(std::vector<VskSingItem>& items, const VskString
 } // vsk_sing_items_from_string
 
 // CMD SING文実装の本体
-bool vsk_sound_cmd_sing(const char *str)
+VSK_SOUND_ERR vsk_sound_cmd_sing(const char *str)
 {
     // 文字列からCMD SINGの項目を取得する
     std::vector<VskSingItem> items;
     if (!vsk_sing_items_from_string(items, str))
-        return false; // 失敗
+        return VSK_SOUND_ERR_ILLEGAL; // 失敗
 
     // フレーズを作成する
     auto phrase = std::make_shared<VskPhrase>();
     phrase->m_setting = vsk_cmd_sing_settings;
     phrase->m_setting.m_fm = false;
     if (!vsk_phrase_from_sing_items(phrase, items))
-        return false;
+        return VSK_SOUND_ERR_ILLEGAL; // 失敗
 
     // フレーズを演奏する
     VskScoreBlock block = { phrase };
@@ -322,10 +322,10 @@ bool vsk_sound_cmd_sing(const char *str)
     // 設定を保存する
     vsk_cmd_sing_settings = phrase->m_setting;
 
-    return true; // 成功
+    return VSK_SOUND_ERR_SUCCESS; // 成功
 }
 
-bool vsk_sound_cmd_sing(const wchar_t *wstr)
+VSK_SOUND_ERR vsk_sound_cmd_sing(const wchar_t *wstr)
 {
     char text_a[512];
     WideCharToMultiByte(932, 0, wstr, -1, text_a, _countof(text_a), nullptr, nullptr);
@@ -333,27 +333,30 @@ bool vsk_sound_cmd_sing(const wchar_t *wstr)
 }
 
 // CMD SING文の出力をWAVファイルに保存する
-bool vsk_sound_cmd_sing_save(const char *str, const wchar_t *filename)
+VSK_SOUND_ERR vsk_sound_cmd_sing_save(const char *str, const wchar_t *filename)
 {
     // 文字列からCMD SINGの項目を取得する
     std::vector<VskSingItem> items;
     if (!vsk_sing_items_from_string(items, str))
-        return false; // 失敗
+        return VSK_SOUND_ERR_ILLEGAL; // 失敗
 
     // フレーズを作成する
     auto phrase = std::make_shared<VskPhrase>();
     phrase->m_setting = vsk_cmd_sing_settings;
     phrase->m_setting.m_fm = false;
     if (!vsk_phrase_from_sing_items(phrase, items))
-        return false;
+        return VSK_SOUND_ERR_ILLEGAL; // 失敗
 
     // フレーズを演奏する
     VskScoreBlock block = { phrase };
-    return vsk_sound_player->save_as_wav(block, filename);
+    if (int ret = vsk_sound_player->save_as_wav(block, filename))
+        return VSK_SOUND_ERR_IO_ERROR; // 失敗
+
+    return VSK_SOUND_ERR_SUCCESS;
 }
 
 // CMD SING文の出力をWAVファイルに保存する
-bool vsk_sound_cmd_sing_save(const wchar_t *wstr, const wchar_t *filename)
+VSK_SOUND_ERR vsk_sound_cmd_sing_save(const wchar_t *wstr, const wchar_t *filename)
 {
     char text_a[512];
     WideCharToMultiByte(932, 0, wstr, -1, text_a, _countof(text_a), nullptr, nullptr);

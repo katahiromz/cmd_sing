@@ -26,7 +26,7 @@ LPCTSTR get_text(INT id)
     {
         switch (id)
         {
-        case 0: return TEXT("cmd_sing バージョン 0.6 by 片山博文MZ");
+        case 0: return TEXT("cmd_sing バージョン 0.7 by 片山博文MZ");
         case 1:
             return TEXT("使い方: cmd_sing [オプション] 文字列\n")
                    TEXT("\n")
@@ -42,6 +42,7 @@ LPCTSTR get_text(INT id)
         case 5: return TEXT("エラー: vsk_sound_initが失敗しました。\n");
         case 6: return TEXT("エラー: 演奏する文字列が未指定です。\n");
         case 7: return TEXT("エラー: ファイル「%ls」が開けません。\n");
+        case 8: return TEXT("エラー: Illegal function call\n");
         }
     }
     else // The others are Let's la English
@@ -49,7 +50,7 @@ LPCTSTR get_text(INT id)
     {
         switch (id)
         {
-        case 0: return TEXT("cmd_sing version 0.6 by katahiromz");
+        case 0: return TEXT("cmd_sing version 0.7 by katahiromz");
         case 1:
             return TEXT("Usage: cmd_sing [Options] string\n")
                    TEXT("\n")
@@ -65,6 +66,7 @@ LPCTSTR get_text(INT id)
         case 5: return TEXT("ERROR: vsk_sound_init failed.\n");
         case 6: return TEXT("ERROR: No string to play specified.\n");
         case 7: return TEXT("ERROR: Unable to open file '%ls'.\n");
+        case 8: return TEXT("ERROR: Illegal function call\n");
         }
     }
 
@@ -170,15 +172,33 @@ int wmain(int argc, wchar_t **argv)
 
     if (sing.m_output_file.size())
     {
-        if (!vsk_sound_cmd_sing_save(sing.m_str_to_play.c_str(), sing.m_output_file.c_str()))
+        if (int ret = vsk_sound_cmd_sing_save(sing.m_str_to_play.c_str(), sing.m_output_file.c_str()))
         {
-            _ftprintf(stderr, get_text(7));
+            switch (ret)
+            {
+            case 1: _ftprintf(stderr, get_text(8)); break;
+            case 2: _ftprintf(stderr, get_text(7)); break;
+            default: assert(0);
+            }
+            vsk_sound_exit();
+            return 1;
         }
         vsk_sound_exit();
         return 0;
     }
 
-    vsk_sound_cmd_sing(sing.m_str_to_play.c_str());
+    if (int ret = vsk_sound_cmd_sing(sing.m_str_to_play.c_str()))
+    {
+        switch (ret)
+        {
+        case 1: _ftprintf(stderr, get_text(8)); break;
+        case 2: _ftprintf(stderr, get_text(7)); break;
+        default: assert(0);
+        }
+        vsk_sound_exit();
+        return 1;
+    }
+
     vsk_sound_wait(-1);
     vsk_sound_exit();
 
