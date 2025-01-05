@@ -301,7 +301,7 @@ bool vsk_sing_items_from_string(std::vector<VskSingItem>& items, const VskString
 } // vsk_sing_items_from_string
 
 // CMD SING文実装の本体
-bool vsk_sound_cmd_sing(const VskString& str)
+bool vsk_sound_cmd_sing(const char *str)
 {
     // 文字列からCMD SINGの項目を取得する
     std::vector<VskSingItem> items;
@@ -325,8 +325,15 @@ bool vsk_sound_cmd_sing(const VskString& str)
     return true; // 成功
 }
 
-// CMD SING文実装の本体
-bool vsk_sound_cmd_sing_save(const VskString& str, const char *filename)
+bool vsk_sound_cmd_sing(const wchar_t *wstr)
+{
+    char text_a[512];
+    WideCharToMultiByte(932, 0, wstr, -1, text_a, _countof(text_a), nullptr, nullptr);
+    return vsk_sound_cmd_sing(text_a);
+}
+
+// CMD SING文の出力をWAVファイルに保存する
+bool vsk_sound_cmd_sing_save(const char *str, const wchar_t *filename)
 {
     // 文字列からCMD SINGの項目を取得する
     std::vector<VskSingItem> items;
@@ -342,34 +349,13 @@ bool vsk_sound_cmd_sing_save(const VskString& str, const char *filename)
 
     // フレーズを演奏する
     VskScoreBlock block = { phrase };
-    vsk_sound_player->save_as_wav(block, filename);
-
-    return true; // 成功
+    return vsk_sound_player->save_as_wav(block, filename);
 }
 
-#ifdef CMD_SING_EXE
-int main(int argc, char **argv)
+// CMD SING文の出力をWAVファイルに保存する
+bool vsk_sound_cmd_sing_save(const wchar_t *wstr, const wchar_t *filename)
 {
-    VskString str = ((argc > 1) ? argv[1] : "T255CDEFEDC");
-
-    if (!vsk_sound_init())
-    {
-        std::fprintf(stderr, "vsk_sound_init failed\n");
-        return 1;
-    }
-
-    if (argc == 2)
-    {
-        vsk_sound_cmd_sing(str);
-        vsk_sound_wait(-1);
-    }
-    else if (argc == 3)
-    {
-        vsk_sound_cmd_sing_save(str, argv[2]);
-    }
-
-    vsk_sound_exit();
-
-    return 0;
+    char text_a[512];
+    WideCharToMultiByte(932, 0, wstr, -1, text_a, _countof(text_a), nullptr, nullptr);
+    return vsk_sound_cmd_sing_save(text_a, filename);
 }
-#endif // def CMD_SING_EXE

@@ -7,7 +7,7 @@
 #include "soundplayer.h"
 #include "AL/alut.h"
 #include <map>
-#include <fstream>
+#include <cstdio>
 
 #define CLOCK       8000000
 #define SAMPLERATE  44100
@@ -532,7 +532,7 @@ bool VskSoundPlayer::play_and_wait(VskScoreBlock& block, uint32_t milliseconds) 
     return wait_for_stop(milliseconds);
 }
 
-void VskSoundPlayer::save_as_wav(VskScoreBlock& block, const char *filename) {
+bool VskSoundPlayer::save_as_wav(VskScoreBlock& block, const wchar_t *filename) {
     FM_SAMPLETYPE *data = nullptr;
     size_t data_size;
 
@@ -543,13 +543,18 @@ void VskSoundPlayer::save_as_wav(VskScoreBlock& block, const char *filename) {
         }
     }
 
-    std::ofstream outFile(filename, std::ios::binary);
+    FILE *fout = _wfopen(filename, L"wb");
+    if (!fout) {
+        delete[] data;
+        return false;
+    }
     auto wav_header = get_wav_header(data_size, CLOCK, SAMPLERATE);
-    outFile.write((const char *)wav_header, WAV_HEADER_SIZE);
-    outFile.write((const char *)data, data_size);
-    outFile.close();
+    std::fwrite(wav_header, WAV_HEADER_SIZE, 1, fout);
+    std::fwrite(data, data_size, 1, fout);
+    std::fclose(fout);
 
     delete[] data;
+    return true;
 }
 
 void VskSoundPlayer::play(VskScoreBlock& block) {

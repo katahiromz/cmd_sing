@@ -248,7 +248,7 @@ struct VskSoundPlayer {
     bool wait_for_stop(uint32_t milliseconds = -1);
     bool play_and_wait(VskScoreBlock& block, uint32_t milliseconds = -1);
     void stop();
-    void save_as_wav(VskScoreBlock& block, const char *filename);
+    bool save_as_wav(VskScoreBlock& block, const wchar_t *filename);
 
     void beep(int i);
     bool is_beeping();
