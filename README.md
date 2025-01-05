@@ -1,8 +1,21 @@
-﻿# cmd_sing by cisc and katahiromz
+﻿(Japanese, UTF-8)
+
+# cmd_sing by 片山博文MZ
 
 ## 概要
 
 N88-BASIC の `CMD SING` を C++/OpenAL でエミュレートするプログラムです。
+
+## 使い方
+
+```txt
+使い方: cmd_sing [オプション] 文字列
+
+オプション:
+  -save_as_wav  出力.wav      WAVファイルとして保存。
+  -help                       このメッセージを表示する。
+  -version                    バージョン情報を表示する。
+```
 
 ## `CMD SING`文 (8801のみ) (タートル拡張) {#cmd_sing}
 
@@ -33,3 +46,11 @@ N88-BASIC の `CMD SING` を C++/OpenAL でエミュレートするプログラ�
 ## 注意
 
 - `X` サブコマンドには対応しておりません。
+
+## 使用許諾
+
+- 本ソフトウェアの使用においては、LICENSE.txtに記載されている「fmgon ライセンス」の使用条件に従ってください。
+
+## 連絡先
+
+- 片山博文MZ <katayama.hirofumi.mz@gmail.com>
