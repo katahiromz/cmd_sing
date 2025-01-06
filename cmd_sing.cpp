@@ -355,7 +355,7 @@ VSK_SOUND_ERR vsk_sound_cmd_sing_save(const char *str, const wchar_t *filename)
 
     // ƒtƒŒ[ƒY‚ð‰‰‘t‚·‚é
     VskScoreBlock block = { phrase };
-    if (int ret = vsk_sound_player->save_as_wav(block, filename))
+    if (!vsk_sound_player->save_as_wav(block, filename))
         return VSK_SOUND_ERR_IO_ERROR; // Ž¸”s
 
     return VSK_SOUND_ERR_SUCCESS;

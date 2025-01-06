@@ -27,7 +27,7 @@ LPCTSTR get_text(INT id)
     {
         switch (id)
         {
-        case 0: return TEXT("cmd_sing バージョン 0.8 by 片山博文MZ");
+        case 0: return TEXT("cmd_sing バージョン 0.9 by 片山博文MZ");
         case 1:
             return TEXT("使い方: cmd_sing [オプション] 文字列\n")
                    TEXT("\n")
@@ -52,7 +52,7 @@ LPCTSTR get_text(INT id)
     {
         switch (id)
         {
-        case 0: return TEXT("cmd_sing version 0.8 by katahiromz");
+        case 0: return TEXT("cmd_sing version 0.9 by katahiromz");
         case 1:
             return TEXT("Usage: cmd_sing [Options] string\n")
                    TEXT("\n")
@@ -223,12 +223,12 @@ int wmain(int argc, wchar_t **argv)
 
     if (sing.m_output_file.size())
     {
-        if (int ret = vsk_sound_cmd_sing_save(sing.m_str_to_play.c_str(), sing.m_output_file.c_str()))
+        if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing_save(sing.m_str_to_play.c_str(), sing.m_output_file.c_str()))
         {
             switch (ret)
             {
             case 1: _ftprintf(stderr, get_text(8)); break;
-            case 2: _ftprintf(stderr, get_text(7)); break;
+            case 2: _ftprintf(stderr, get_text(7), sing.m_output_file.c_str()); break;
             default: assert(0);
             }
             vsk_sound_exit();
@@ -238,7 +238,7 @@ int wmain(int argc, wchar_t **argv)
         return 0;
     }
 
-    if (int ret = vsk_sound_cmd_sing(sing.m_str_to_play.c_str()))
+    if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing(sing.m_str_to_play.c_str()))
     {
         switch (ret)
         {
