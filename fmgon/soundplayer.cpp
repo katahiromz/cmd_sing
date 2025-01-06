@@ -269,9 +269,7 @@ void VskPhrase::execute_special_actions() {
             // std::mapのiteratorはkeyの昇順でiterateするし、
             // アクションも順番通りでvectorに追加したため、順番は保証されている
             for (auto& pair2 : gate_to_actions) {
-                // gate�͕b�������_�ŕ\���Ă��܂�
                 auto gate = pair2.first;
-                // gate�������X�y�V�����A�N�V������vector
                 auto action_numbers = pair2.second;
 
                 // 前のgateからの待機時間を計算して待機
