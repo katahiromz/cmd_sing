@@ -300,12 +300,16 @@ bool vsk_sing_items_from_string(std::vector<VskSingItem>& items, const VskString
     return vsk_expand_sing_items_repeat(items);
 } // vsk_sing_items_from_string
 
+VskString vsk_replace_placeholders(const VskString& str);
+
 // CMD SING文実装の本体
 VSK_SOUND_ERR vsk_sound_cmd_sing(const char *str)
 {
+    VskString s = vsk_replace_placeholders(str); // {文字列変数名}を展開する
+
     // 文字列からCMD SINGの項目を取得する
     std::vector<VskSingItem> items;
-    if (!vsk_sing_items_from_string(items, str))
+    if (!vsk_sing_items_from_string(items, s))
         return VSK_SOUND_ERR_ILLEGAL; // 失敗
 
     // フレーズを作成する
@@ -335,9 +339,11 @@ VSK_SOUND_ERR vsk_sound_cmd_sing(const wchar_t *wstr)
 // CMD SING文の出力をWAVファイルに保存する
 VSK_SOUND_ERR vsk_sound_cmd_sing_save(const char *str, const wchar_t *filename)
 {
+    VskString s = vsk_replace_placeholders(str); // {文字列変数名}を展開する
+
     // 文字列からCMD SINGの項目を取得する
     std::vector<VskSingItem> items;
-    if (!vsk_sing_items_from_string(items, str))
+    if (!vsk_sing_items_from_string(items, s))
         return VSK_SOUND_ERR_ILLEGAL; // 失敗
 
     // フレーズを作成する

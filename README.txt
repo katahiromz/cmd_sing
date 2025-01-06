@@ -11,9 +11,12 @@ N88-BASIC の `CMD SING` を C++/OpenAL でエミュレートするプログラ�
     使い方: cmd_sing [オプション] 文字列
 
     オプション:
-      -save_as_wav  出力.wav      WAVファイルとして保存。
-      -help                       このメッセージを表示する。
-      -version                    バージョン情報を表示する。
+      -D変数名=値            変数に代入。
+      -save_wav 出力.wav     WAVファイルとして保存。
+      -help                  このメッセージを表示する。
+      -version               バージョン情報を表示する。
+
+    文字列変数は、{変数名} で展開できます。
 
 ## `CMD SING`文 (8801のみ) (タートル拡張) {#cmd_sing}
 

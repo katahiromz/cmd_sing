@@ -1,23 +1,38 @@
 #pragma once
 
 #include <memory>
+#include <map>
+
+extern std::map<VskString, VskString> g_variables;
 
 struct VskAst
 {
-    int m_int = 0;
+    VskString m_str;
+    double m_dbl = 0;
+
     VskAst(const VskString& str)
     {
-        m_int = std::atoi(str.c_str());
+        m_str = str;
+        m_dbl = std::atof(str.c_str());
     }
 
     int to_int() const
     {
-        return m_int;
+        return (int)m_dbl;
+    }
+    double to_dbl() const
+    {
+        return m_dbl;
     }
 };
 typedef std::shared_ptr<VskAst> VskAstPtr;
 
 inline VskAstPtr vsk_eval_text(const VskString& str)
 {
+    if (str.size() && str[0] == '(' && str[str.size() - 1] == ')')
+    {
+        VskString var = str.substr(1, str.size() - 2);
+        return std::make_shared<VskAst>(g_variables[var]);
+    }
     return std::make_shared<VskAst>(str);
 }

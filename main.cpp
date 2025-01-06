@@ -8,6 +8,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cassert>
+#include <map>
 #include <windows.h>
 #include <tchar.h>
 #include <shlwapi.h>
@@ -26,16 +27,17 @@ LPCTSTR get_text(INT id)
     {
         switch (id)
         {
-        case 0: return TEXT("cmd_sing バージョン 0.7 by 片山博文MZ");
+        case 0: return TEXT("cmd_sing バージョン 0.8 by 片山博文MZ");
         case 1:
             return TEXT("使い方: cmd_sing [オプション] 文字列\n")
                    TEXT("\n")
                    TEXT("オプション:\n")
-                   TEXT("  -save_as_wav  出力.wav      WAVファイルとして保存。\n")
-                   TEXT("  -help                       このメッセージを表示する。\n")
-                   TEXT("  -version                    バージョン情報を表示する。\n")
+                   TEXT("  -D変数名=値            変数に代入。\n")
+                   TEXT("  -save_wav 出力.wav     WAVファイルとして保存。\n")
+                   TEXT("  -help                  このメッセージを表示する。\n")
+                   TEXT("  -version               バージョン情報を表示する。\n")
                    TEXT("\n")
-                   TEXT("ReadMe.txt もご覧下さい。");
+                   TEXT("文字列変数は、{変数名} で展開できます。");
         case 2: return TEXT("エラー: オプション -save_as_wav は引数が必要です。\n");
         case 3: return TEXT("エラー: 「%ls」は、無効なオプションです。\n");
         case 4: return TEXT("エラー: 引数が多すぎます。\n");
@@ -50,17 +52,18 @@ LPCTSTR get_text(INT id)
     {
         switch (id)
         {
-        case 0: return TEXT("cmd_sing version 0.7 by katahiromz");
+        case 0: return TEXT("cmd_sing version 0.8 by katahiromz");
         case 1:
             return TEXT("Usage: cmd_sing [Options] string\n")
                    TEXT("\n")
                    TEXT("Options:\n")
-                   TEXT("  -save_as_wav  output.wav    Save as WAV file.\n")
-                   TEXT("  -help                       Display this message.\n")
-                   TEXT("  -version                    Display version info.\n")
+                   TEXT("  -DVAR=VALUE            Assign to a variable.\n")
+                   TEXT("  -save_wav output.wav   Save as WAV file.\n")
+                   TEXT("  -help                  Display this message.\n")
+                   TEXT("  -version               Display version info.\n")
                    TEXT("\n")
-                   TEXT("See also ReadMe.txt.");
-        case 2: return TEXT("ERROR: Option -save_as_wav needs an operand.\n");
+                   TEXT("String variables can be expanded with {variable name}.");
+        case 2: return TEXT("ERROR: Option -save_wav needs an operand.\n");
         case 3: return TEXT("ERROR: '%ls' is an invalid option.\n");
         case 4: return TEXT("ERROR: Too many arguments.\n");
         case 5: return TEXT("ERROR: vsk_sound_init failed.\n");
@@ -82,6 +85,33 @@ void version(void)
 void usage(void)
 {
     _putts(get_text(1));
+}
+
+// 変数
+std::map<VskString, VskString> g_variables;
+
+// 「{変数名}」を変数の値に置き換える
+VskString vsk_replace_placeholders(const VskString& str)
+{
+    VskString result = str;
+    size_t start_pos = 0;
+
+    while ((start_pos = result.find("{", start_pos)) != result.npos) {
+        size_t end_pos = result.find("}", start_pos);
+        if (end_pos == std::string::npos)
+            break; // 閉じカッコが見つからない場合は終了
+
+        VskString key = result.substr(start_pos + 1, end_pos - start_pos - 1);
+        auto it = g_variables.find(key);
+        if (it != g_variables.end()) {
+            result.replace(start_pos, end_pos - start_pos + 1, it->second);
+            start_pos += it->second.length(); // 置き換えた後の新しい開始位置に移動
+        } else {
+            result.replace(start_pos, end_pos - start_pos + 1, "");
+        }
+    }
+
+    return result;
 }
 
 struct CMD_SING
@@ -117,7 +147,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             return 1;
         }
 
-        if (_wcsicmp(arg, L"-save_as_wav") == 0 || _wcsicmp(arg, L"--save_as_wav") == 0)
+        if (_wcsicmp(arg, L"-save_wav") == 0 || _wcsicmp(arg, L"--save_wav") == 0)
         {
             if (iarg + 1 < argc)
             {
@@ -129,6 +159,27 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
                 _ftprintf(stderr, get_text(2));
                 return 1;
             }
+        }
+
+        if (arg[0] == '-' && (arg[1] == 'd' || arg[1] == 'D'))
+        {
+            char text[256];
+            WideCharToMultiByte(932, 0, &arg[2], -1, text, _countof(text), nullptr, nullptr);
+            VskString str = text;
+            auto ich = str.find('=');
+            if (ich == str.npos)
+            {
+                TCHAR text[256];
+                StringCchPrintf(text, _countof(text), get_text(3), arg);
+                _ftprintf(stderr, TEXT("%s"), text);
+                return 1;
+            }
+            auto var = str.substr(0, ich);
+            auto value = str.substr(ich + 1);
+            CharUpperA(&var[0]);
+            CharUpperA(&value[0]);
+            g_variables[var] = value;
+            continue;
         }
 
         if (arg[0] == '-')
