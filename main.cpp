@@ -143,6 +143,16 @@ std::string vsk_sjis_from_wide(const wchar_t *wide)
     return str;
 }
 
+VSK_SOUND_ERR vsk_sound_cmd_sing(const wchar_t *wstr)
+{
+    return vsk_sound_cmd_sing(vsk_sjis_from_wide(wstr).c_str());
+}
+
+VSK_SOUND_ERR vsk_sound_cmd_sing_save(const wchar_t *wstr, const wchar_t *filename)
+{
+    return vsk_sound_cmd_sing_save(vsk_sjis_from_wide(wstr).c_str(), filename);
+}
+
 struct CMD_SING
 {
     std::wstring m_str_to_play;

@@ -329,13 +329,6 @@ VSK_SOUND_ERR vsk_sound_cmd_sing(const char *str)
     return VSK_SOUND_ERR_SUCCESS; // 成功
 }
 
-std::string vsk_sjis_from_wide(const wchar_t *wide);
-
-VSK_SOUND_ERR vsk_sound_cmd_sing(const wchar_t *wstr)
-{
-    return vsk_sound_cmd_sing(vsk_sjis_from_wide(wstr).c_str());
-}
-
 // CMD SING文の出力をWAVファイルに保存する
 VSK_SOUND_ERR vsk_sound_cmd_sing_save(const char *str, const wchar_t *filename)
 {
@@ -359,10 +352,4 @@ VSK_SOUND_ERR vsk_sound_cmd_sing_save(const char *str, const wchar_t *filename)
         return VSK_SOUND_ERR_IO_ERROR; // 失敗
 
     return VSK_SOUND_ERR_SUCCESS;
-}
-
-// CMD SING文の出力をWAVファイルに保存する
-VSK_SOUND_ERR vsk_sound_cmd_sing_save(const wchar_t *wstr, const wchar_t *filename)
-{
-    return vsk_sound_cmd_sing_save(vsk_sjis_from_wide(wstr).c_str(), filename);
 }
