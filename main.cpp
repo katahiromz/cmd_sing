@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cassert>
 #include <map>
+#include <unordered_set>
 #include <windows.h>
 #include <tchar.h>
 #include <shlwapi.h>
@@ -91,8 +92,8 @@ void usage(void)
 std::map<VskString, VskString> g_variables;
 
 // 再帰的に「{変数名}」を変数の値に置き換える関数
-std::string vsk_replace_placeholders(const std::string& str)
-{
+std::string
+vsk_replace_placeholders(const std::string& str, std::unordered_set<std::string>& visited) {
     std::string result = str;
     size_t start_pos = 0;
 
@@ -102,17 +103,32 @@ std::string vsk_replace_placeholders(const std::string& str)
             break; // 閉じカッコが見つからない場合は終了
 
         std::string key = result.substr(start_pos + 1, end_pos - start_pos - 1);
+        if (visited.find(key) != visited.end()) {
+            // 循環参照を検出した場合はエラーとして処理する
+            throw std::runtime_error("Circular reference detected: " + key);
+        }
+        visited.insert(key);
+
         auto it = g_variables.find(key);
         if (it != g_variables.end()) {
-            std::string value = vsk_replace_placeholders(it->second); // ここで再帰的に置き換えを行う
+            // ここで再帰的に置き換えを行う
+            std::string value = vsk_replace_placeholders(it->second, visited);
             result.replace(start_pos, end_pos - start_pos + 1, value);
             start_pos += value.length(); // 置き換えた後の新しい開始位置に移動
         } else {
             result.replace(start_pos, end_pos - start_pos + 1, "");
         }
+        visited.erase(key);
     }
 
     return result;
+}
+
+// 再帰的に「{変数名}」を変数の値に置き換える関数
+std::string vsk_replace_placeholders(const std::string& str)
+{
+    std::unordered_set<std::string> visited;
+    return vsk_replace_placeholders(str, visited);
 }
 
 struct CMD_SING
