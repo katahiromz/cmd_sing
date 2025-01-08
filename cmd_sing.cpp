@@ -87,7 +87,7 @@ bool vsk_phrase_from_sing_items(std::shared_ptr<VskPhrase> phrase, const std::ve
             return false;
         case 'L': // Length (‰¹•„E‹x•„‚Ì’·‚³)
             if (auto ast = vsk_get_sing_param(item)) {
-                auto i0 = ast->to_sng();
+                auto i0 = ast->to_int();
                 if ((1 <= i0) && (i0 <= 32)) {
                     phrase->m_setting.m_length = (24.0f * 4) / i0;
                     continue;
@@ -102,7 +102,7 @@ bool vsk_phrase_from_sing_items(std::shared_ptr<VskPhrase> phrase, const std::ve
         case 'C': case 'D': case 'E': case 'F': case 'G': case 'A': case 'B':
             // ‰¹•„(CDEFGAB)‚©‹x•„(Rest)
             if (auto ast = vsk_get_sing_param(item)) {
-                auto L = ast->to_sng();
+                auto L = ast->to_int();
                 // NOTE: 24 is the length of a quarter note
                 if ((1 <= L) && (L <= 32)) {
                     length = 24.0f * 4 / L;
@@ -275,7 +275,7 @@ bool vsk_sing_items_from_string(std::vector<VskSingItem>& items, const VskString
             if (vsk_isdigit(ch)) {
                 while (!scanner.eof()) {
                     ch = scanner.getch();
-                    if (!vsk_isdigit(ch) && ch != '.') {
+                    if (!vsk_isdigit(ch)) {
                         scanner.ungetch();
                         break;
                     }
