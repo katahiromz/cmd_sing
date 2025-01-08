@@ -87,7 +87,7 @@ bool vsk_phrase_from_sing_items(std::shared_ptr<VskPhrase> phrase, const std::ve
             return false;
         case 'L': // Length (‰¹•„E‹x•„‚Ì’·‚³)
             if (auto ast = vsk_get_sing_param(item)) {
-                auto i0 = ast->to_int();
+                auto i0 = ast->to_sng();
                 if ((1 <= i0) && (i0 <= 32)) {
                     phrase->m_setting.m_length = (24.0f * 4) / i0;
                     continue;
@@ -102,7 +102,7 @@ bool vsk_phrase_from_sing_items(std::shared_ptr<VskPhrase> phrase, const std::ve
         case 'C': case 'D': case 'E': case 'F': case 'G': case 'A': case 'B':
             // ‰¹•„(CDEFGAB)‚©‹x•„(Rest)
             if (auto ast = vsk_get_sing_param(item)) {
-                auto L = ast->to_int();
+                auto L = ast->to_sng();
                 // NOTE: 24 is the length of a quarter note
                 if ((1 <= L) && (L <= 32)) {
                     length = 24.0f * 4 / L;

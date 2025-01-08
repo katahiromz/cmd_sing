@@ -18,7 +18,11 @@ struct VskAst
 
     int to_int() const
     {
-        return (int)m_dbl;
+        return (int)(m_dbl + 0.5);
+    }
+    float to_sng() const
+    {
+        return (float)m_dbl;
     }
     double to_dbl() const
     {
