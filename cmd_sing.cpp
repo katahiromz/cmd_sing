@@ -275,7 +275,7 @@ bool vsk_sing_items_from_string(std::vector<VskSingItem>& items, const VskString
             if (vsk_isdigit(ch)) {
                 while (!scanner.eof()) {
                     ch = scanner.getch();
-                    if (!vsk_isdigit(ch)) {
+                    if (!vsk_isdigit(ch) && ch != '.') {
                         scanner.ungetch();
                         break;
                     }
