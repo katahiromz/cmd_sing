@@ -90,10 +90,10 @@ void usage(void)
 // 変数
 std::map<VskString, VskString> g_variables;
 
-// 「{変数名}」を変数の値に置き換える
-VskString vsk_replace_placeholders(const VskString& str)
+// 再帰的に「{変数名}」を変数の値に置き換える関数
+std::string vsk_replace_placeholders(const std::string& str)
 {
-    VskString result = str;
+    std::string result = str;
     size_t start_pos = 0;
 
     while ((start_pos = result.find("{", start_pos)) != result.npos) {
@@ -101,11 +101,12 @@ VskString vsk_replace_placeholders(const VskString& str)
         if (end_pos == std::string::npos)
             break; // 閉じカッコが見つからない場合は終了
 
-        VskString key = result.substr(start_pos + 1, end_pos - start_pos - 1);
+        std::string key = result.substr(start_pos + 1, end_pos - start_pos - 1);
         auto it = g_variables.find(key);
         if (it != g_variables.end()) {
-            result.replace(start_pos, end_pos - start_pos + 1, it->second);
-            start_pos += it->second.length(); // 置き換えた後の新しい開始位置に移動
+            std::string value = vsk_replace_placeholders(it->second); // ここで再帰的に置き換えを行う
+            result.replace(start_pos, end_pos - start_pos + 1, value);
+            start_pos += value.length(); // 置き換えた後の新しい開始位置に移動
         } else {
             result.replace(start_pos, end_pos - start_pos + 1, "");
         }
