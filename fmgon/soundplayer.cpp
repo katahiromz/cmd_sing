@@ -621,6 +621,18 @@ void VskSoundPlayer::play(VskScoreBlock& block) {
                         alutSleep(remaining_actions * 0.005);
                     } while (remaining_actions > 0);
                 }
+
+                // 最後の音が途切れないようにOpenALの再生終了まで待機
+                ALint state;
+                for (auto& phrase : phrases) {
+                    if (phrase) {
+                        do {
+                            alGetSourcei(phrase->m_source, AL_SOURCE_STATE, &state);
+                            // ループ回数を抑えるために少々間隔を入れる
+                            alutSleep(0.01);
+                        } while (state == AL_PLAYING);
+                    }
+                }
             }
             if (m_playing_music) {
                 m_playing_music = false;
