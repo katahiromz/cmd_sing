@@ -39,14 +39,18 @@
 // VskNote
 
 enum SpecialKeys {
-    KEY_REST = -1,          // �x���̃L�[
-    KEY_SPECIAL_ACTION = -2 // �X�y�V�����A�N�V�����̃L�[
+    KEY_REST = -1,             // 休符
+    KEY_SPECIAL_ACTION = -2,   // スペシャルアクション
+    KEY_TONE = -3,             // トーン変更
+    KEY_SPECIAL_REST = -4,     // 特殊な休符
+    KEY_REG = -5,              // レジスタ書き込み
+    KEY_ENVELOP_INTERVAL = -6, // エンベロープ周期
+    KEY_ENVELOP_TYPE = -7,     // エンベロープ形状
 };
 
 struct VskNote {
     int         m_tempo;
     int         m_octave;
-    int         m_tone;
     int         m_key;
     bool        m_dot;
     float       m_length;
@@ -56,16 +60,16 @@ struct VskNote {
     float       m_volume;   // in 0 to 15
     int         m_quantity; // in 0 to 8
     bool        m_and;
-    int         m_action_no;
+    int         m_reg;
+    int         m_data;
 
-    VskNote(int tempo, int octave, int tone, int note,
+    VskNote(int tempo, int octave, int note,
             bool dot = false, float length = 24, char sign = 0,
             float volume = 8, int quantity = 8,
-            bool and_ = false, int action_no = -1)
+            bool and_ = false, int reg = -1, int data = -1)
     {
         m_tempo = tempo;
         m_octave = octave;
-        m_tone = tone;
         m_dot = dot;
         m_length = length;
         m_sign = sign;
@@ -74,7 +78,8 @@ struct VskNote {
         m_volume = volume;
         m_quantity = quantity;
         m_and = and_;
-        m_action_no = action_no;
+        m_reg = reg;
+        m_data = data;
     }
 
     float get_sec(int tempo, float length) const;
@@ -91,7 +96,6 @@ struct VskSoundSetting {
     int                 m_tempo;    // tempo
     int                 m_octave;   // octave
     float               m_length;   // 24 is the length of a quarter note
-    int                 m_tone;     // see YM2203_Timbre
     YM2203_Timbre       m_timbre;   // see YM2203_Timbre
     bool                m_fm;       // whether it is FM or not?
     float               m_volume;   // in 0 to 15
@@ -99,7 +103,7 @@ struct VskSoundSetting {
 
     VskSoundSetting(int tempo = 120, int octave = 4 - 1, float length = 24,
                     int tone = 0, bool fm = false) :
-        m_tempo(tempo), m_octave(octave), m_length(length), m_tone(tone),
+        m_tempo(tempo), m_octave(octave), m_length(length),
         m_fm(fm)
     {
         m_volume = 8;
@@ -110,7 +114,6 @@ struct VskSoundSetting {
         m_tempo = 120;
         m_octave = 4 - 1;
         m_length = 24;
-        m_tone = 0;
         m_fm = false;
         m_volume = 8;
         m_quantity = 8;
@@ -153,29 +156,43 @@ struct VskPhrase {
         add_note(note, dot, length, sign, m_setting.m_quantity);
     }
     void add_note(char note, bool dot, float length, char sign, int quantity) {
-        add_note(m_setting.m_tone, note, dot, length, sign, quantity);
+        add_note(note, dot, length, sign, quantity, false);
     }
-    void add_note(int tone, char note, bool dot, float length, char sign,
-                  int quantity)
-    {
+    void add_note(char note, bool dot, float length, char sign, int quantity, bool and_) {
         m_notes.emplace_back(
             m_setting.m_tempo, m_setting.m_octave,
-            tone, note, dot, length, sign, m_setting.m_volume, quantity);
-    }
-    void add_note(int tone, char note, bool dot, float length, char sign,
-                  int quantity, bool and_)
-    {
-        m_notes.emplace_back(
-            m_setting.m_tempo, m_setting.m_octave,
-            tone, note, dot, length, sign, m_setting.m_volume,
+            note, dot, length, sign, m_setting.m_volume,
             quantity, and_);
     }
-    void add_action_node(char note, int action_no)
-    {
+    void add_action_node(char note, int action_no) {
         m_notes.emplace_back(
             m_setting.m_tempo, m_setting.m_octave,
-            m_setting.m_tone, note, false, 0, 0, m_setting.m_volume,
-            m_setting.m_quantity, false, action_no);
+            note, false, 0, 0, m_setting.m_volume,
+            m_setting.m_quantity, false, -1, action_no);
+    }
+    void add_tone(char note, int tone_no) {
+        m_notes.emplace_back(
+            m_setting.m_tempo, m_setting.m_octave,
+            note, false, 0, 0, m_setting.m_volume,
+            m_setting.m_quantity, false, -1, tone_no);
+    }
+    void add_reg(char note, int reg, int data) {
+        m_notes.emplace_back(
+            m_setting.m_tempo, m_setting.m_octave,
+            note, false, 0, 0, m_setting.m_volume,
+            m_setting.m_quantity, false, reg, data);
+    }
+    void add_envelop_interval(char note, int data) {
+        m_notes.emplace_back(
+            m_setting.m_tempo, m_setting.m_octave,
+            note, false, 0, 0, m_setting.m_volume,
+            m_setting.m_quantity, false, -1, data);
+    }
+    void add_envelop_type(char note, int data) {
+        m_notes.emplace_back(
+            m_setting.m_tempo, m_setting.m_octave,
+            note, false, 0, 0, m_setting.m_volume,
+            m_setting.m_quantity, false, -1, data);
     }
     void add_key(int key) {
         add_key(key, false);
@@ -190,16 +207,11 @@ struct VskPhrase {
         add_key(key, dot, length, sign, m_setting.m_quantity);
     }
     void add_key(int key, bool dot, float length, char sign, int quantity) {
-        add_key(m_setting.m_tone, key, dot, length, sign, quantity);
-    }
-    void add_key(int tone, int key, bool dot, float length, char sign,
-                 int quantity)
-    {
         if (key == 96) {
             key = 0;
         }
         VskNote note(m_setting.m_tempo, 0,
-            tone, 0, dot, length, sign, m_setting.m_volume, quantity);
+            0, dot, length, sign, m_setting.m_volume, quantity);
         note.m_key = key;
         m_notes.push_back(note);
     }
