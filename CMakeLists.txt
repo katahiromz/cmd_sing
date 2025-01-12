@@ -39,6 +39,11 @@ if(OpenAL_FOUND)
 endif()
 
 ##############################################################################
+# pevent
+
+add_subdirectory(pevent)
+
+##############################################################################
 # fmgon
 
 add_subdirectory(fmgon)
@@ -56,7 +61,7 @@ message(STATUS "BUILD_TESTS: ${BUILD_TESTS}")
 # cmd_sing
 
 # cmd_sing.exe
-add_executable(cmd_sing cmd_sing.cpp cmd_play.cpp sound.cpp main.cpp)
+add_executable(cmd_sing cmd_sing.cpp cmd_play.cpp sound.cpp main.cpp soundplayer.cpp)
 target_compile_definitions(cmd_sing PRIVATE UNICODE _UNICODE JAPAN CMD_SING_EXE)
 target_link_libraries(cmd_sing fmgon alut shlwapi ${OPENAL_LIBRARY})
 
