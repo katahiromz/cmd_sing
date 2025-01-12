@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cassert>
 #include <map>
+#include <stdexcept>
 #include <unordered_set>
 #include <windows.h>
 #include <tchar.h>
