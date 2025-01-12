@@ -39,7 +39,7 @@ LPCTSTR get_text(INT id)
                    TEXT("  -version               バージョン情報を表示する。\n")
                    TEXT("\n")
                    TEXT("文字列変数は、{変数名} で展開できます。");
-        case 2: return TEXT("エラー: オプション -save_as_wav は引数が必要です。\n");
+        case 2: return TEXT("エラー: オプション -save_wav は引数が必要です。\n");
         case 3: return TEXT("エラー: 「%ls」は、無効なオプションです。\n");
         case 4: return TEXT("エラー: 引数が多すぎます。\n");
         case 5: return TEXT("エラー: vsk_sound_initが失敗しました。\n");
@@ -202,9 +202,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
 
         if (arg[0] == '-' && (arg[1] == 'd' || arg[1] == 'D'))
         {
-            char text[256];
-            WideCharToMultiByte(932, 0, &arg[2], -1, text, _countof(text), nullptr, nullptr);
-            VskString str = text;
+            VskString str = vsk_sjis_from_wide(&arg[2]);
             auto ich = str.find('=');
             if (ich == str.npos)
             {
@@ -248,26 +246,22 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
     return 0;
 }
 
-int wmain(int argc, wchar_t **argv)
+int CMD_SING::run()
 {
-    CMD_SING sing;
-    if (int ret = sing.parse_cmd_line(argc, argv))
-        return ret;
-
     if (!vsk_sound_init())
     {
         _ftprintf(stderr, get_text(5));
         return 1;
     }
 
-    if (sing.m_output_file.size())
+    if (m_output_file.size())
     {
-        if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing_save(sing.m_str_to_play.c_str(), sing.m_output_file.c_str()))
+        if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing_save(m_str_to_play.c_str(), m_output_file.c_str()))
         {
             switch (ret)
             {
             case 1: _ftprintf(stderr, get_text(8)); break;
-            case 2: _ftprintf(stderr, get_text(7), sing.m_output_file.c_str()); break;
+            case 2: _ftprintf(stderr, get_text(7), m_output_file.c_str()); break;
             default: assert(0);
             }
             vsk_sound_exit();
@@ -277,7 +271,7 @@ int wmain(int argc, wchar_t **argv)
         return 0;
     }
 
-    if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing(sing.m_str_to_play.c_str()))
+    if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing(m_str_to_play.c_str()))
     {
         switch (ret)
         {
@@ -293,6 +287,15 @@ int wmain(int argc, wchar_t **argv)
     vsk_sound_exit();
 
     return 0;
+}
+
+int wmain(int argc, wchar_t **argv)
+{
+    CMD_SING sing;
+    if (int ret = sing.parse_cmd_line(argc, argv))
+        return ret;
+
+    return sing.run();
 }
 
 #include <clocale>
