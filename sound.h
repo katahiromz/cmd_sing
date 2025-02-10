@@ -22,6 +22,9 @@ VSK_SOUND_ERR vsk_sound_cmd_sing(const char *str);
 VSK_SOUND_ERR vsk_sound_cmd_sing(const wchar_t *str);
 VSK_SOUND_ERR vsk_sound_cmd_sing_save(const char *str, const wchar_t *filename);
 VSK_SOUND_ERR vsk_sound_cmd_sing_save(const wchar_t *wstr, const wchar_t *filename);
+size_t vsk_cmd_sing_get_setting_size(void);
+bool vsk_cmd_sing_get_setting(std::vector<uint8_t>& data);
+bool vsk_cmd_sing_set_setting(const std::vector<uint8_t>& data);
 
 // CMD PLAY
 bool vsk_sound_cmd_play_ssg(const std::vector<VskString>& strs);

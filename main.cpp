@@ -202,7 +202,53 @@ struct CMD_SING
 
     int parse_cmd_line(int argc, wchar_t **argv);
     int run();
+    bool load_settings();
+    bool save_settings();
 };
+
+bool CMD_SING::load_settings()
+{
+    HKEY hKey;
+
+    LSTATUS error = RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Katayama Hirofumi MZ\\cmd_sing", 0,
+                                  KEY_READ, &hKey);
+    if (error)
+        return false;
+
+    size_t size = vsk_cmd_sing_get_setting_size();
+    std::vector<uint8_t> setting;
+    setting.resize(size);
+
+    DWORD cbValue = size;
+    error = RegQueryValueExW(hKey, L"setting", NULL, NULL, setting.data(), &cbValue);
+    if (!error)
+        vsk_cmd_sing_set_setting(setting);
+
+    RegCloseKey(hKey);
+
+    return true;
+}
+
+bool CMD_SING::save_settings()
+{
+    std::vector<uint8_t> setting;
+    if (!vsk_cmd_sing_get_setting(setting))
+        return false;
+
+    HKEY hKey;
+    LSTATUS error = RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\Katayama Hirofumi MZ\\cmd_sing", 0,
+                                    NULL, 0, KEY_WRITE, NULL, &hKey, NULL);
+    if (error)
+        return false;
+
+    RegSetValueExW(hKey, L"setting", 0, REG_BINARY, setting.data(), (DWORD)setting.size());
+
+    RegCloseKey(hKey);
+
+    return true;
+}
+
+bool save_settings();
 
 int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
 {
@@ -296,6 +342,8 @@ int CMD_SING::run()
         return 1;
     }
 
+    load_settings();
+
     if (m_output_file.size())
     {
         if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing_save(m_str_to_play.c_str(), m_output_file.c_str()))
@@ -326,6 +374,9 @@ int CMD_SING::run()
     }
 
     vsk_sound_wait(-1);
+
+    save_settings();
+
     vsk_sound_exit();
 
     return 0;

@@ -13,6 +13,29 @@ extern std::shared_ptr<VskSoundPlayer> vsk_sound_player;
 // CMD SINGの現在の設定
 static VskSoundSetting vsk_cmd_sing_settings;
 
+// 設定のサイズ
+size_t vsk_cmd_sing_get_setting_size(void)
+{
+    return sizeof(vsk_cmd_sing_settings);
+}
+
+// 設定の取得
+bool vsk_cmd_sing_get_setting(std::vector<uint8_t>& data)
+{
+    data.resize(sizeof(vsk_cmd_sing_settings));
+    std::memcpy(data.data(), &vsk_cmd_sing_settings, sizeof(vsk_cmd_sing_settings));
+    return true;
+}
+
+// 設定の設定
+bool vsk_cmd_sing_set_setting(const std::vector<uint8_t>& data)
+{
+    if (data.size() != sizeof(vsk_cmd_sing_settings))
+        return false;
+    std::memcpy(&vsk_cmd_sing_settings, data.data(), sizeof(vsk_cmd_sing_settings));
+    return true;
+}
+
 // VskSingItem --- CMD SING 用の演奏項目
 struct VskSingItem
 {
