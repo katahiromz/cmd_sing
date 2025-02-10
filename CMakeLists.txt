@@ -5,7 +5,7 @@
 cmake_minimum_required(VERSION 3.6)
 
 # project name and languages
-project(cmd_sing VERSION 0.5.1 LANGUAGES CXX)
+project(cmd_sing VERSION 0.5.1 LANGUAGES CXX RC)
 
 # UTF-8
 if(MSVC)
@@ -26,7 +26,7 @@ add_subdirectory(fmgon)
 # cmd_sing
 
 # cmd_sing.exe
-add_executable(cmd_sing cmd_sing.cpp cmd_play.cpp sound.cpp main.cpp soundplayer.cpp)
+add_executable(cmd_sing cmd_sing.cpp cmd_play.cpp sound.cpp main.cpp soundplayer.cpp cmd_sing_res.rc)
 target_compile_definitions(cmd_sing PRIVATE UNICODE _UNICODE JAPAN CMD_SING_EXE)
 target_link_libraries(cmd_sing fmgon shlwapi winmm)
 
