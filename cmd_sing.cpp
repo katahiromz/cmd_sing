@@ -16,23 +16,23 @@ static VskSoundSetting vsk_cmd_sing_settings;
 // 設定のサイズ
 size_t vsk_cmd_sing_get_setting_size(void)
 {
-    return sizeof(vsk_cmd_sing_settings);
+    return sizeof(VskSoundSetting);
 }
 
 // 設定の取得
 bool vsk_cmd_sing_get_setting(std::vector<uint8_t>& data)
 {
-    data.resize(sizeof(vsk_cmd_sing_settings));
-    std::memcpy(data.data(), &vsk_cmd_sing_settings, sizeof(vsk_cmd_sing_settings));
+    data.resize(sizeof(VskSoundSetting));
+    std::memcpy(data.data(), &vsk_cmd_sing_settings, sizeof(VskSoundSetting));
     return true;
 }
 
 // 設定の設定
 bool vsk_cmd_sing_set_setting(const std::vector<uint8_t>& data)
 {
-    if (data.size() != sizeof(vsk_cmd_sing_settings))
+    if (data.size() != sizeof(VskSoundSetting))
         return false;
-    std::memcpy(&vsk_cmd_sing_settings, data.data(), sizeof(vsk_cmd_sing_settings));
+    std::memcpy(&vsk_cmd_sing_settings, data.data(), sizeof(VskSoundSetting));
     return true;
 }
 

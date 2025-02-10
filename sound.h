@@ -33,3 +33,6 @@ bool vsk_sound_cmd_play_fm(const std::vector<VskString>& strs);
 bool vsk_sound_cmd_play_ssg_save(const std::vector<VskString>& strs, const wchar_t *filename);
 bool vsk_sound_cmd_play_fm_and_ssg_save(const std::vector<VskString>& strs, const wchar_t *filename);
 bool vsk_sound_cmd_play_fm_save(const std::vector<VskString>& strs, const wchar_t *filename);
+size_t vsk_cmd_play_get_setting_size(void);
+bool vsk_cmd_play_get_setting(int ch, std::vector<uint8_t>& data);
+bool vsk_cmd_play_set_setting(int ch, const std::vector<uint8_t>& data);

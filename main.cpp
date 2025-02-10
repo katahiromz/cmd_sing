@@ -248,8 +248,6 @@ bool CMD_SING::save_settings()
     return true;
 }
 
-bool save_settings();
-
 int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
 {
     if (argc <= 1)
