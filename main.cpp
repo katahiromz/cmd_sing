@@ -361,7 +361,7 @@ int CMD_SING::run()
 
     if (m_output_file.size())
     {
-        if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing_save(m_str_to_play.c_str(), m_output_file.c_str()))
+        if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing_save(m_str_to_play.c_str(), m_output_file.c_str(), m_stereo))
         {
             switch (ret)
             {
