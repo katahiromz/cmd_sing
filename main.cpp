@@ -187,14 +187,14 @@ std::string vsk_sjis_from_wide(const wchar_t *wide)
     return str;
 }
 
-VSK_SOUND_ERR vsk_sound_cmd_sing(const wchar_t *wstr)
+VSK_SOUND_ERR vsk_sound_cmd_sing(const wchar_t *wstr, bool stereo)
 {
-    return vsk_sound_cmd_sing(vsk_sjis_from_wide(wstr).c_str());
+    return vsk_sound_cmd_sing(vsk_sjis_from_wide(wstr).c_str(), stereo);
 }
 
-VSK_SOUND_ERR vsk_sound_cmd_sing_save(const wchar_t *wstr, const wchar_t *filename)
+VSK_SOUND_ERR vsk_sound_cmd_sing_save(const wchar_t *wstr, const wchar_t *filename, bool stereo)
 {
-    return vsk_sound_cmd_sing_save(vsk_sjis_from_wide(wstr).c_str(), filename);
+    return vsk_sound_cmd_sing_save(vsk_sjis_from_wide(wstr).c_str(), filename, stereo);
 }
 
 struct CMD_SING
@@ -202,6 +202,7 @@ struct CMD_SING
     std::wstring m_str_to_play;
     std::wstring m_output_file;
     bool m_reset = false;
+    bool m_stereo = false;
 
     int parse_cmd_line(int argc, wchar_t **argv);
     int run();
@@ -295,6 +296,12 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             continue;
         }
 
+        if (_wcsicmp(arg, L"-stereo") == 0 || _wcsicmp(arg, L"--stereo") == 0)
+        {
+            m_stereo = true;
+            continue;
+        }
+
         if (arg[0] == '-' && (arg[1] == 'd' || arg[1] == 'D'))
         {
             VskString str = vsk_sjis_from_wide(&arg[2]);
@@ -343,7 +350,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
 
 int CMD_SING::run()
 {
-    if (!vsk_sound_init())
+    if (!vsk_sound_init(m_stereo))
     {
         _ftprintf(stderr, get_text(5));
         return 1;
@@ -369,7 +376,7 @@ int CMD_SING::run()
         return 0;
     }
 
-    if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing(m_str_to_play.c_str()))
+    if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing(m_str_to_play.c_str(), m_stereo))
     {
         switch (ret)
         {
