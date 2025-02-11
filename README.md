@@ -14,6 +14,7 @@ N88-BASIC の `CMD SING` を C++/OpenAL でエミュレートするプログラ�
 オプション:
   -D変数名=値            変数に代入。
   -save_wav 出力.wav     WAVファイルとして保存。
+  -reset                 設定をリセット。
   -help                  このメッセージを表示する。
   -version               バージョン情報を表示する。
 
