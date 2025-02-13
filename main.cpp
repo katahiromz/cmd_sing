@@ -224,6 +224,8 @@ VSK_SOUND_ERR vsk_sound_cmd_sing_save(const wchar_t *wstr, const wchar_t *filena
 
 struct CMD_SING
 {
+    bool m_help = false;
+    bool m_version = false;
     std::wstring m_str_to_play;
     std::wstring m_output_file;
     bool m_reset = false;
@@ -281,8 +283,8 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
 {
     if (argc <= 1)
     {
-        usage();
-        return 1;
+        m_help = true;
+        return 0;
     }
 
     for (int iarg = 1; iarg < argc; ++iarg)
@@ -291,14 +293,14 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
 
         if (_wcsicmp(arg, L"-help") == 0 || _wcsicmp(arg, L"--help") == 0)
         {
-            usage();
-            return 1;
+            m_help = true;
+            return 0;
         }
 
         if (_wcsicmp(arg, L"-version") == 0 || _wcsicmp(arg, L"--version") == 0)
         {
-            version();
-            return 1;
+            m_version = true;
+            return 0;
         }
 
         if (_wcsicmp(arg, L"-save_wav") == 0 || _wcsicmp(arg, L"--save_wav") == 0)
@@ -365,6 +367,18 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
 
 int CMD_SING::run()
 {
+    if (m_help)
+    {
+        usage();
+        return 0;
+    }
+
+    if (m_version)
+    {
+        version();
+        return 0;
+    }
+
     if (!vsk_sound_init(m_stereo))
     {
         my_puts(get_text(5), stderr);
