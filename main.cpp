@@ -58,6 +58,7 @@ enum TEXT_ID {
     IDT_SOUND_INIT_FAILED,
     IDT_CANT_OPEN_FILE,
     IDT_BAD_CALL,
+    IDT_CIRCULAR_REFERENCE,
 };
 
 // localization
@@ -86,6 +87,7 @@ LPCTSTR get_text(INT id)
         case IDT_SOUND_INIT_FAILED: return TEXT("エラー: vsk_sound_initが失敗しました。\n");
         case IDT_CANT_OPEN_FILE: return TEXT("エラー: ファイル「%s」が開けません。\n");
         case IDT_BAD_CALL: return TEXT("エラー: Illegal function call\n");
+        case IDT_CIRCULAR_REFERENCE: return TEXT("エラー: 変数の循環参照を検出しました。\n");
         }
     }
     else // The others are Let's la English
@@ -111,6 +113,7 @@ LPCTSTR get_text(INT id)
         case IDT_SOUND_INIT_FAILED: return TEXT("ERROR: vsk_sound_init failed.\n");
         case IDT_CANT_OPEN_FILE: return TEXT("ERROR: Unable to open file '%s'.\n");
         case IDT_BAD_CALL: return TEXT("ERROR: Illegal function call\n");
+        case IDT_CIRCULAR_REFERENCE: return TEXT("ERROR: Circular variable reference detected.\n");
         }
     }
 
@@ -145,7 +148,7 @@ vsk_replace_placeholders(const std::string& str, std::unordered_set<std::string>
         std::string key = result.substr(start_pos + 1, end_pos - start_pos - 1);
         if (visited.find(key) != visited.end()) {
             // 循環参照を検出した場合はエラーとして処理する
-            throw std::runtime_error("Circular reference detected: " + key);
+            throw std::runtime_error("circular reference detected");
         }
         visited.insert(key);
 
@@ -186,7 +189,7 @@ vsk_replace_placeholders2(const std::string& str, std::unordered_set<std::string
         CharUpperA(&key[0]);
         if (visited.find(key) != visited.end()) {
             // 循環参照を検出した場合はエラーとして処理する
-            throw std::runtime_error("Circular reference detected: " + key);
+            throw std::runtime_error("circular reference detected");
         }
         visited.insert(key);
 
@@ -493,7 +496,13 @@ int main(void)
         ret = wmain(argc, argv);
         LocalFree(argv);
     } catch (const std::exception& e) {
-        printf("ERROR: %s\n", e.what());
+        std::string what = e.what();
+        if (what == "circular reference detected") {
+            my_puts(get_text(IDT_CIRCULAR_REFERENCE), stderr);
+            do_beep();
+        } else {
+            printf("ERROR: %s\n", what.c_str());
+        }
         ret = -1;
     }
 
