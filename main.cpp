@@ -28,6 +28,26 @@ void do_beep(void)
 #endif
 }
 
+void my_puts(LPCTSTR pszText, FILE *fout)
+{
+#ifdef UNICODE
+    _ftprintf(fout, L"%ls", pszText);
+#else
+    _ftprintf(fout, L"%s", pszText);
+#endif
+}
+
+void my_printf(FILE *fout, LPCTSTR  fmt, ...)
+{
+    static TCHAR szText[2048];
+    va_list va;
+
+    va_start(va, fmt);
+    StringCchVPrintf(szText, _countof(szText), fmt, va);
+    my_puts(szText, fout);
+    va_end(va);
+}
+
 // localization
 LPCTSTR get_text(INT id)
 {
@@ -52,7 +72,6 @@ LPCTSTR get_text(INT id)
         case 3: return TEXT("エラー: 「%ls」は、無効なオプションです。\n");
         case 4: return TEXT("エラー: 引数が多すぎます。\n");
         case 5: return TEXT("エラー: vsk_sound_initが失敗しました。\n");
-        case 6: return TEXT("エラー: 演奏する文字列が未指定です。\n");
         case 7: return TEXT("エラー: ファイル「%ls」が開けません。\n");
         case 8: return TEXT("エラー: Illegal function call\n");
         }
@@ -78,7 +97,6 @@ LPCTSTR get_text(INT id)
         case 3: return TEXT("ERROR: '%ls' is an invalid option.\n");
         case 4: return TEXT("ERROR: Too many arguments.\n");
         case 5: return TEXT("ERROR: vsk_sound_init failed.\n");
-        case 6: return TEXT("ERROR: No string to play specified.\n");
         case 7: return TEXT("ERROR: Unable to open file '%ls'.\n");
         case 8: return TEXT("ERROR: Illegal function call\n");
         }
@@ -292,7 +310,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             }
             else
             {
-                _ftprintf(stderr, get_text(2));
+                my_puts(get_text(2), stderr);
                 return 1;
             }
         }
@@ -315,9 +333,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             auto ich = str.find('=');
             if (ich == str.npos)
             {
-                TCHAR text[256];
-                StringCchPrintf(text, _countof(text), get_text(3), arg);
-                _ftprintf(stderr, TEXT("%ls"), text);
+                my_printf(stderr, get_text(3), arg);
                 return 1;
             }
             auto var = str.substr(0, ich);
@@ -330,9 +346,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
 
         if (arg[0] == '-')
         {
-            TCHAR text[256];
-            StringCchPrintf(text, _countof(text), get_text(3), arg);
-            _ftprintf(stderr, TEXT("%ls"), text);
+            my_printf(stderr, get_text(3), arg);
             return 1;
         }
 
@@ -342,13 +356,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             continue;
         }
 
-        _ftprintf(stderr, get_text(4));
-        return 1;
-    }
-
-    if (m_str_to_play.empty())
-    {
-        _ftprintf(stderr, get_text(6));
+        my_puts(get_text(4), stderr);
         return 1;
     }
 
@@ -359,7 +367,7 @@ int CMD_SING::run()
 {
     if (!vsk_sound_init(m_stereo))
     {
-        _ftprintf(stderr, get_text(5));
+        my_puts(get_text(5), stderr);
         return 1;
     }
 
@@ -372,9 +380,14 @@ int CMD_SING::run()
         {
             switch (ret)
             {
-            case 1: _ftprintf(stderr, get_text(8)); break;
-            case 2: _ftprintf(stderr, get_text(7), m_output_file.c_str()); break;
-            default: assert(0);
+            case 1:
+                my_puts(get_text(8), stderr);
+                break;
+            case 2:
+                my_printf(stderr, get_text(7), m_output_file.c_str());
+                break;
+            default:
+                assert(0);
             }
             do_beep();
             vsk_sound_exit();
@@ -388,9 +401,14 @@ int CMD_SING::run()
     {
         switch (ret)
         {
-        case 1: _ftprintf(stderr, get_text(8)); break;
-        case 2: _ftprintf(stderr, get_text(7)); break;
-        default: assert(0);
+        case 1:
+            my_puts(get_text(8), stderr);
+            break;
+        case 2:
+            my_puts(get_text(7), stderr);
+            break;
+        default:
+            assert(0);
         }
         do_beep();
         vsk_sound_exit();
