@@ -69,10 +69,10 @@ LPCTSTR get_text(INT id)
                    TEXT("\n")
                    TEXT("文字列変数は、{変数名} で展開できます。");
         case 2: return TEXT("エラー: オプション -save_wav は引数が必要です。\n");
-        case 3: return TEXT("エラー: 「%ls」は、無効なオプションです。\n");
+        case 3: return TEXT("エラー: 「%s」は、無効なオプションです。\n");
         case 4: return TEXT("エラー: 引数が多すぎます。\n");
         case 5: return TEXT("エラー: vsk_sound_initが失敗しました。\n");
-        case 7: return TEXT("エラー: ファイル「%ls」が開けません。\n");
+        case 7: return TEXT("エラー: ファイル「%s」が開けません。\n");
         case 8: return TEXT("エラー: Illegal function call\n");
         }
     }
@@ -94,10 +94,10 @@ LPCTSTR get_text(INT id)
                    TEXT("\n")
                    TEXT("String variables can be expanded with {variable name}.");
         case 2: return TEXT("ERROR: Option -save_wav needs an operand.\n");
-        case 3: return TEXT("ERROR: '%ls' is an invalid option.\n");
+        case 3: return TEXT("ERROR: '%s' is an invalid option.\n");
         case 4: return TEXT("ERROR: Too many arguments.\n");
         case 5: return TEXT("ERROR: vsk_sound_init failed.\n");
-        case 7: return TEXT("ERROR: Unable to open file '%ls'.\n");
+        case 7: return TEXT("ERROR: Unable to open file '%s'.\n");
         case 8: return TEXT("ERROR: Illegal function call\n");
         }
     }
