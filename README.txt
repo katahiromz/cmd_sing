@@ -4,7 +4,7 @@
 
 ## 概要
 
-N88-BASIC の `CMD SING` を Windows でエミュレートするプログラムです。
+古いパソコン PC-8801 の N88-BASIC というプログラム言語の CMD SING 文を Windows でエミュレートするプログラムです。
 
 ## 使い方
 
