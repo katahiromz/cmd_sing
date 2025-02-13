@@ -18,12 +18,14 @@
 
 enum RET { // exit code of this program
     RET_SUCCESS = 0,
-    RET_CANCELED = -1,
-    RET_BAD_CALL = -2,
-    RET_BAD_CMDLINE = -3,
-    RET_CANT_OPEN_FILE = -4,
-    RET_BAD_SOUND_INIT = -5,
+    RET_BAD_CALL = 2,
+    RET_BAD_CMDLINE = 3,
+    RET_CANT_OPEN_FILE = 4,
+    RET_BAD_SOUND_INIT = 5,
+    RET_CANCELED = 6,
 };
+
+bool g_canceled = false;
 
 inline WORD get_lang_id(void)
 {
@@ -480,11 +482,12 @@ static BOOL WINAPI HandlerRoutine(DWORD signal)
     {
     case CTRL_C_EVENT: // Ctrl+C
     case CTRL_BREAK_EVENT: // Ctrl+Break
-        vsk_sound_exit();
+        g_canceled = true;
+        vsk_sound_stop();
         std::printf("^C\nBreak\nOk\n");
         std::fflush(stdout);
         do_beep();
-        exit(RET_CANCELED);
+        return TRUE;
     }
     return FALSE;
 }
@@ -494,7 +497,7 @@ int wmain(int argc, wchar_t **argv)
     SetConsoleCtrlHandler(HandlerRoutine, TRUE); // Ctrl+C
 
     CMD_SING sing;
-    if (int ret = sing.parse_cmd_line(argc, argv))
+    if (RET ret = sing.parse_cmd_line(argc, argv))
     {
         do_beep();
         return ret;
@@ -527,7 +530,6 @@ int main(void)
             do_beep();
         }
         ret = RET_BAD_CALL;
-        exit(ret);
     }
 
     // Detect handle leaks (for Debug)
@@ -543,6 +545,9 @@ int main(void)
 #if defined(_MSC_VER) && !defined(NDEBUG)
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
+
+    if (g_canceled)
+        return RET_CANCELED;
 
     return ret;
 }
