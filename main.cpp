@@ -16,6 +16,15 @@
 #include <shlwapi.h>
 #include <strsafe.h>
 
+enum RET { // exit code of this program
+    RET_SUCCESS = 0,
+    RET_CANCELED = -1,
+    RET_BAD_CALL = -2,
+    RET_BAD_CMDLINE = -3,
+    RET_CANT_OPEN_FILE = -4,
+    RET_BAD_SOUND_INIT = -5,
+};
+
 inline WORD get_lang_id(void)
 {
     return PRIMARYLANGID(LANGIDFROMLCID(GetThreadLocale()));
@@ -51,8 +60,7 @@ void my_printf(FILE *fout, LPCTSTR  fmt, ...)
     va_end(va);
 }
 
-// text id
-enum TEXT_ID {
+enum TEXT_ID { // text id
     IDT_VERSION,
     IDT_HELP,
     IDT_NEEDS_OPERAND,
@@ -249,8 +257,8 @@ struct CMD_SING
     bool m_reset = false;
     bool m_stereo = false;
 
-    int parse_cmd_line(int argc, wchar_t **argv);
-    int run();
+    RET parse_cmd_line(int argc, wchar_t **argv);
+    RET run();
     bool load_settings();
     bool save_settings();
 };
@@ -297,12 +305,12 @@ bool CMD_SING::save_settings()
     return true;
 }
 
-int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
+RET CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
 {
     if (argc <= 1)
     {
         m_help = true;
-        return 0;
+        return RET_SUCCESS;
     }
 
     for (int iarg = 1; iarg < argc; ++iarg)
@@ -312,13 +320,13 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
         if (_wcsicmp(arg, L"-help") == 0 || _wcsicmp(arg, L"--help") == 0)
         {
             m_help = true;
-            return 0;
+            return RET_SUCCESS;
         }
 
         if (_wcsicmp(arg, L"-version") == 0 || _wcsicmp(arg, L"--version") == 0)
         {
             m_version = true;
-            return 0;
+            return RET_SUCCESS;
         }
 
         if (_wcsicmp(arg, L"-save_wav") == 0 || _wcsicmp(arg, L"--save_wav") == 0)
@@ -331,7 +339,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             else
             {
                 my_puts(get_text(IDT_NEEDS_OPERAND), stderr);
-                return 1;
+                return RET_BAD_CMDLINE;
             }
         }
 
@@ -360,7 +368,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             if (ich == str.npos)
             {
                 my_printf(stderr, get_text(IDT_INVALID_OPTION), arg);
-                return 1;
+                return RET_BAD_CMDLINE;
             }
             auto var = str.substr(0, ich);
             auto value = str.substr(ich + 1);
@@ -373,7 +381,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
         if (arg[0] == '-')
         {
             my_printf(stderr, get_text(IDT_INVALID_OPTION), arg);
-            return 1;
+            return RET_BAD_CMDLINE;
         }
 
         if (m_str_to_play.empty())
@@ -383,30 +391,30 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
         }
 
         my_puts(get_text(IDT_TOO_MAY_ARGS), stderr);
-        return 1;
+        return RET_BAD_CMDLINE;
     }
 
-    return 0;
+    return RET_SUCCESS;
 }
 
-int CMD_SING::run()
+RET CMD_SING::run()
 {
     if (m_help)
     {
         usage();
-        return 0;
+        return RET_SUCCESS;
     }
 
     if (m_version)
     {
         version();
-        return 0;
+        return RET_SUCCESS;
     }
 
     if (!vsk_sound_init(m_stereo))
     {
         my_puts(get_text(IDT_SOUND_INIT_FAILED), stderr);
-        return 1;
+        return RET_BAD_SOUND_INIT;
     }
 
     if (!m_reset)
@@ -429,10 +437,10 @@ int CMD_SING::run()
             }
             do_beep();
             vsk_sound_exit();
-            return 1;
+            return RET_BAD_CALL;
         }
         vsk_sound_exit();
-        return 0;
+        return RET_SUCCESS;
     }
 
     if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing(m_str_to_play.c_str(), m_stereo))
@@ -450,7 +458,7 @@ int CMD_SING::run()
         }
         do_beep();
         vsk_sound_exit();
-        return 1;
+        return RET_BAD_CALL;
     }
 
     vsk_sound_wait(-1);
@@ -459,7 +467,7 @@ int CMD_SING::run()
 
     vsk_sound_exit();
 
-    return 0;
+    return RET_SUCCESS;
 }
 
 static BOOL WINAPI HandlerRoutine(DWORD signal)
@@ -472,6 +480,7 @@ static BOOL WINAPI HandlerRoutine(DWORD signal)
         std::printf("^C\nBreak\nOk\n");
         std::fflush(stdout);
         do_beep();
+        exit(RET_CANCELED);
     }
     return FALSE;
 }
@@ -511,8 +520,10 @@ int main(void)
             do_beep();
         } else {
             printf("ERROR: %s\n", what.c_str());
+            do_beep();
         }
-        ret = -1;
+        ret = RET_BAD_CALL;
+        exit(ret);
     }
 
     // Detect handle leaks (for Debug)
