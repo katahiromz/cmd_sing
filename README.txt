@@ -4,7 +4,7 @@
 
 ## 概要
 
-N88-BASIC の `CMD SING` を C++/Win32 でエミュレートするプログラムです。
+N88-BASIC の `CMD SING` を Windows でエミュレートするプログラムです。
 
 ## 使い方
 
