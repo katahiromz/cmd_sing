@@ -97,7 +97,7 @@ LPCTSTR get_text(INT id)
         case IDT_TOO_MAY_ARGS: return TEXT("エラー: 引数が多すぎます。\n");
         case IDT_SOUND_INIT_FAILED: return TEXT("エラー: vsk_sound_initが失敗しました。\n");
         case IDT_CANT_OPEN_FILE: return TEXT("エラー: ファイル「%s」が開けません。\n");
-        case IDT_BAD_CALL: return TEXT("エラー: Illegal function call\n");
+        case IDT_BAD_CALL: return TEXT("エラー: 不正な関数呼び出しです。\n");
         case IDT_CIRCULAR_REFERENCE: return TEXT("エラー: 変数の循環参照を検出しました。\n");
         }
     }
