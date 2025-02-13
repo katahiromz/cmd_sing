@@ -92,7 +92,7 @@ LPCTSTR get_text(INT id)
                    TEXT("  -version               バージョン情報を表示する。\n")
                    TEXT("\n")
                    TEXT("文字列変数は、{変数名} で展開できます。\n");
-        case IDT_NEEDS_OPERAND: return TEXT("エラー: オプション -save_wav は引数が必要です。\n");
+        case IDT_NEEDS_OPERAND: return TEXT("エラー: オプション「%s」は引数が必要です。\n");
         case IDT_INVALID_OPTION: return TEXT("エラー: 「%s」は、無効なオプションです。\n");
         case IDT_TOO_MAY_ARGS: return TEXT("エラー: 引数が多すぎます。\n");
         case IDT_SOUND_INIT_FAILED: return TEXT("エラー: vsk_sound_initが失敗しました。\n");
@@ -118,7 +118,7 @@ LPCTSTR get_text(INT id)
                    TEXT("  -version               Display version info.\n")
                    TEXT("\n")
                    TEXT("String variables can be expanded with {variable name}.\n");
-        case IDT_NEEDS_OPERAND: return TEXT("ERROR: Option -save_wav needs an operand.\n");
+        case IDT_NEEDS_OPERAND: return TEXT("ERROR: Option '%s' needs an operand.\n");
         case IDT_INVALID_OPTION: return TEXT("ERROR: '%s' is an invalid option.\n");
         case IDT_TOO_MAY_ARGS: return TEXT("ERROR: Too many arguments.\n");
         case IDT_SOUND_INIT_FAILED: return TEXT("ERROR: vsk_sound_init failed.\n");
@@ -338,7 +338,7 @@ RET CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             }
             else
             {
-                my_puts(get_text(IDT_NEEDS_OPERAND), stderr);
+                my_printf(stderr, get_text(IDT_NEEDS_OPERAND), arg);
                 return RET_BAD_CMDLINE;
             }
         }
