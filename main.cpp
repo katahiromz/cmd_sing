@@ -424,6 +424,7 @@ RET CMD_SING::run()
     {
         if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing_save(m_str_to_play.c_str(), m_output_file.c_str(), m_stereo))
         {
+            RET ret2 = RET_BAD_CALL;
             switch (ret)
             {
             case 1:
@@ -431,13 +432,14 @@ RET CMD_SING::run()
                 break;
             case 2:
                 my_printf(stderr, get_text(IDT_CANT_OPEN_FILE), m_output_file.c_str());
+                ret2 = RET_CANT_OPEN_FILE;
                 break;
             default:
                 assert(0);
             }
             do_beep();
             vsk_sound_exit();
-            return RET_BAD_CALL;
+            return ret2;
         }
         vsk_sound_exit();
         return RET_SUCCESS;
@@ -445,6 +447,7 @@ RET CMD_SING::run()
 
     if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing(m_str_to_play.c_str(), m_stereo))
     {
+        RET ret2 = RET_BAD_CALL;
         switch (ret)
         {
         case 1:
@@ -452,13 +455,14 @@ RET CMD_SING::run()
             break;
         case 2:
             my_puts(get_text(IDT_CANT_OPEN_FILE), stderr);
+            ret2 = RET_CANT_OPEN_FILE;
             break;
         default:
             assert(0);
         }
         do_beep();
         vsk_sound_exit();
-        return RET_BAD_CALL;
+        return ret2;
     }
 
     vsk_sound_wait(-1);
