@@ -48,6 +48,18 @@ void my_printf(FILE *fout, LPCTSTR  fmt, ...)
     va_end(va);
 }
 
+// text id
+enum TEXT_ID {
+    IDT_VERSION,
+    IDT_HELP,
+    IDT_NEEDS_OPERAND,
+    IDT_INVALID_OPTION,
+    IDT_TOO_MAY_ARGS,
+    IDT_SOUND_INIT_FAILED,
+    IDT_CANT_OPEN_FILE,
+    IDT_BAD_CALL,
+};
+
 // localization
 LPCTSTR get_text(INT id)
 {
@@ -56,8 +68,8 @@ LPCTSTR get_text(INT id)
     {
         switch (id)
         {
-        case 0: return TEXT("cmd_sing バージョン 1.3 by 片山博文MZ");
-        case 1:
+        case IDT_VERSION: return TEXT("cmd_sing バージョン 1.3 by 片山博文MZ");
+        case IDT_HELP:
             return TEXT("使い方: cmd_sing [オプション] 文字列\n")
                    TEXT("\n")
                    TEXT("オプション:\n")
@@ -68,12 +80,12 @@ LPCTSTR get_text(INT id)
                    TEXT("  -version               バージョン情報を表示する。\n")
                    TEXT("\n")
                    TEXT("文字列変数は、{変数名} で展開できます。");
-        case 2: return TEXT("エラー: オプション -save_wav は引数が必要です。\n");
-        case 3: return TEXT("エラー: 「%s」は、無効なオプションです。\n");
-        case 4: return TEXT("エラー: 引数が多すぎます。\n");
-        case 5: return TEXT("エラー: vsk_sound_initが失敗しました。\n");
-        case 7: return TEXT("エラー: ファイル「%s」が開けません。\n");
-        case 8: return TEXT("エラー: Illegal function call\n");
+        case IDT_NEEDS_OPERAND: return TEXT("エラー: オプション -save_wav は引数が必要です。\n");
+        case IDT_INVALID_OPTION: return TEXT("エラー: 「%s」は、無効なオプションです。\n");
+        case IDT_TOO_MAY_ARGS: return TEXT("エラー: 引数が多すぎます。\n");
+        case IDT_SOUND_INIT_FAILED: return TEXT("エラー: vsk_sound_initが失敗しました。\n");
+        case IDT_CANT_OPEN_FILE: return TEXT("エラー: ファイル「%s」が開けません。\n");
+        case IDT_BAD_CALL: return TEXT("エラー: Illegal function call\n");
         }
     }
     else // The others are Let's la English
@@ -81,8 +93,8 @@ LPCTSTR get_text(INT id)
     {
         switch (id)
         {
-        case 0: return TEXT("cmd_sing version 1.3 by katahiromz");
-        case 1:
+        case IDT_VERSION: return TEXT("cmd_sing version 1.3 by katahiromz");
+        case IDT_HELP:
             return TEXT("Usage: cmd_sing [Options] string\n")
                    TEXT("\n")
                    TEXT("Options:\n")
@@ -93,12 +105,12 @@ LPCTSTR get_text(INT id)
                    TEXT("  -version               Display version info.\n")
                    TEXT("\n")
                    TEXT("String variables can be expanded with {variable name}.");
-        case 2: return TEXT("ERROR: Option -save_wav needs an operand.\n");
-        case 3: return TEXT("ERROR: '%s' is an invalid option.\n");
-        case 4: return TEXT("ERROR: Too many arguments.\n");
-        case 5: return TEXT("ERROR: vsk_sound_init failed.\n");
-        case 7: return TEXT("ERROR: Unable to open file '%s'.\n");
-        case 8: return TEXT("ERROR: Illegal function call\n");
+        case IDT_NEEDS_OPERAND: return TEXT("ERROR: Option -save_wav needs an operand.\n");
+        case IDT_INVALID_OPTION: return TEXT("ERROR: '%s' is an invalid option.\n");
+        case IDT_TOO_MAY_ARGS: return TEXT("ERROR: Too many arguments.\n");
+        case IDT_SOUND_INIT_FAILED: return TEXT("ERROR: vsk_sound_init failed.\n");
+        case IDT_CANT_OPEN_FILE: return TEXT("ERROR: Unable to open file '%s'.\n");
+        case IDT_BAD_CALL: return TEXT("ERROR: Illegal function call\n");
         }
     }
 
@@ -108,12 +120,12 @@ LPCTSTR get_text(INT id)
 
 void version(void)
 {
-    _putts(get_text(0));
+    _putts(get_text(IDT_VERSION));
 }
 
 void usage(void)
 {
-    _putts(get_text(1));
+    _putts(get_text(IDT_HELP));
 }
 
 // 変数
@@ -312,7 +324,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             }
             else
             {
-                my_puts(get_text(2), stderr);
+                my_puts(get_text(IDT_NEEDS_OPERAND), stderr);
                 return 1;
             }
         }
@@ -335,7 +347,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             auto ich = str.find('=');
             if (ich == str.npos)
             {
-                my_printf(stderr, get_text(3), arg);
+                my_printf(stderr, get_text(IDT_INVALID_OPTION), arg);
                 return 1;
             }
             auto var = str.substr(0, ich);
@@ -348,7 +360,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
 
         if (arg[0] == '-')
         {
-            my_printf(stderr, get_text(3), arg);
+            my_printf(stderr, get_text(IDT_INVALID_OPTION), arg);
             return 1;
         }
 
@@ -358,7 +370,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             continue;
         }
 
-        my_puts(get_text(4), stderr);
+        my_puts(get_text(IDT_TOO_MAY_ARGS), stderr);
         return 1;
     }
 
@@ -381,7 +393,7 @@ int CMD_SING::run()
 
     if (!vsk_sound_init(m_stereo))
     {
-        my_puts(get_text(5), stderr);
+        my_puts(get_text(IDT_SOUND_INIT_FAILED), stderr);
         return 1;
     }
 
@@ -395,10 +407,10 @@ int CMD_SING::run()
             switch (ret)
             {
             case 1:
-                my_puts(get_text(8), stderr);
+                my_puts(get_text(IDT_BAD_CALL), stderr);
                 break;
             case 2:
-                my_printf(stderr, get_text(7), m_output_file.c_str());
+                my_printf(stderr, get_text(IDT_CANT_OPEN_FILE), m_output_file.c_str());
                 break;
             default:
                 assert(0);
@@ -416,10 +428,10 @@ int CMD_SING::run()
         switch (ret)
         {
         case 1:
-            my_puts(get_text(8), stderr);
+            my_puts(get_text(IDT_BAD_CALL), stderr);
             break;
         case 2:
-            my_puts(get_text(7), stderr);
+            my_puts(get_text(IDT_CANT_OPEN_FILE), stderr);
             break;
         default:
             assert(0);
