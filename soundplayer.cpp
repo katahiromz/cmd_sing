@@ -570,7 +570,13 @@ bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<FM_SAMPL
     }
 
     size_t num_samples = data_size / sizeof(FM_SAMPLETYPE);
-    samples.resize(num_samples);
+
+    if (stereo) {
+        samples.resize(num_samples * 2);
+    } else {
+        samples.resize(num_samples);
+    }
+
     for (size_t isample = 0; isample < num_samples; ++isample) {
         // mixing
         int32_t value = 0;
@@ -583,15 +589,14 @@ bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<FM_SAMPL
             value = std::numeric_limits<FM_SAMPLETYPE>::min();
         else if (value > std::numeric_limits<FM_SAMPLETYPE>::max())
             value = std::numeric_limits<FM_SAMPLETYPE>::max();
-        if (isample < data_size)
-            samples[isample] = value;
-        else
-            samples[isample] = 0;
-    }
-
-    if (stereo)
-    {
-        // TODO: samples を疑似ステレオ化
+        
+        int32_t sample_value = (isample < data_size) ? value : 0;
+        if (stereo) {
+            samples[isample * 2] = sample_value;
+            samples[isample * 2 + 1] = sample_value;
+        } else {
+            samples[isample] = sample_value;
+        }
     }
 
     for (auto entry : raw_data) {
