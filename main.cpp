@@ -21,6 +21,13 @@ inline WORD get_lang_id(void)
     return PRIMARYLANGID(LANGIDFROMLCID(GetThreadLocale()));
 }
 
+void do_beep(void)
+{
+#ifdef ENABLE_BEEP
+    Beep(1000, 750);
+#endif
+}
+
 // localization
 LPCTSTR get_text(INT id)
 {
@@ -310,7 +317,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             {
                 TCHAR text[256];
                 StringCchPrintf(text, _countof(text), get_text(3), arg);
-                _ftprintf(stderr, TEXT("%s"), text);
+                _ftprintf(stderr, TEXT("%ls"), text);
                 return 1;
             }
             auto var = str.substr(0, ich);
@@ -325,7 +332,7 @@ int CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
         {
             TCHAR text[256];
             StringCchPrintf(text, _countof(text), get_text(3), arg);
-            _ftprintf(stderr, TEXT("%s"), text);
+            _ftprintf(stderr, TEXT("%ls"), text);
             return 1;
         }
 
@@ -369,6 +376,7 @@ int CMD_SING::run()
             case 2: _ftprintf(stderr, get_text(7), m_output_file.c_str()); break;
             default: assert(0);
             }
+            do_beep();
             vsk_sound_exit();
             return 1;
         }
@@ -384,6 +392,7 @@ int CMD_SING::run()
         case 2: _ftprintf(stderr, get_text(7)); break;
         default: assert(0);
         }
+        do_beep();
         vsk_sound_exit();
         return 1;
     }
@@ -406,7 +415,7 @@ static BOOL WINAPI HandlerRoutine(DWORD signal)
         vsk_sound_exit();
         std::printf("^C\nBreak\nOk\n");
         std::fflush(stdout);
-        Beep(1000, 750);
+        do_beep();
     }
     return FALSE;
 }
@@ -417,7 +426,10 @@ int wmain(int argc, wchar_t **argv)
 
     CMD_SING sing;
     if (int ret = sing.parse_cmd_line(argc, argv))
+    {
+        do_beep();
         return ret;
+    }
 
     return sing.run();
 }
