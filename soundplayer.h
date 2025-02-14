@@ -252,7 +252,7 @@ struct VskSoundPlayer {
     bool play_and_wait(VskScoreBlock& block, uint32_t milliseconds, bool stereo);
     void stop();
     bool save_as_wav(VskScoreBlock& block, const wchar_t *filename, bool stereo);
-    bool generate_pcm_raw(VskScoreBlock& block, std::vector<VSK_PCM16_VALUE>& pcm_values, bool stereo);
+    bool generate_pcm_raw(VskScoreBlock& block, std::vector<VSK_PCM16_VALUE>& values, bool stereo);
 
     void register_special_action(int action_no, VskSpecialActionFn fn = nullptr);
     void do_special_action(int action_no);
