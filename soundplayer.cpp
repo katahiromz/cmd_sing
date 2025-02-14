@@ -512,29 +512,23 @@ void VskPhrase::realize(VskSoundPlayer *player, VSK_PCM16_VALUE*& data, size_t& 
 #define WAV_HEADER_SIZE    44
 
 // TODO: stereo
-static uint8_t* get_wav_header(uint32_t data_size, uint32_t clock, uint32_t sample_rate, bool stereo)
+static uint8_t*
+get_wav_header(uint32_t data_size, uint32_t clock, uint32_t sample_rate, bool stereo)
 {
     // リニアPCM16ビット
-    static uint8_t wav_header[WAV_HEADER_SIZE] = {
-        /* 0 */ 0x52, 0x49, 0x46, 0x46,  // 'RIFF'
-        /* 4 */ 0x00, 0x00, 0x00, 0x00,  // RIFFチャンクのサイズ(size + 12 + 16 + 8)
-        /* 8 */ 0x57, 0x41, 0x56, 0x45,  // 'WAVE'
-        /* 12 */ 0x66, 0x6D, 0x74, 0x20,  // 'fmt '
-        /* 16 */ 0x10, 0x00, 0x00, 0x00,  // fmtチャンクのバイト数 = 16(リニアPCM)
-        /* 20 */ 0x01, 0x00,              // フォーマット = 1(非圧縮PCM)
-        /* 22 */ 0x01, 0x00,              // チャネル数
-        /* 24 */ 0x00, 0x00, 0x00, 0x00,  // サンプリング周波数 = sample_rate
-        /* 28 */ 0x00, 0x7D, 0x00, 0x00,  // バイト/秒 = 32000
-        /* 32 */ 0x02, 0x00,              // ブロックサイズ = 16bit x 1(モノラル) = 2byte
-        /* 34 */ 0x10, 0x00,              // ビット/サンプル = 16
-        /* 36 */ 0x64, 0x61, 0x74, 0x61,  // 'data'
-        /* 40 */ 0x00, 0x00, 0x00, 0x00   // size (データバイト数)
-    };
-    uint32_t riff_size = data_size + WAV_HEADER_SIZE - 8;
-    (uint32_t&)(wav_header[4]) = riff_size;
-    (uint16_t&)(wav_header[22]) = (stereo ? 2 : 1);
+    static uint8_t wav_header[WAV_HEADER_SIZE] = { 0 };
+    std::memcpy(&wav_header[0], "RIFF", 4);
+    (uint32_t&)wav_header[4] = data_size + WAV_HEADER_SIZE - 8;
+    std::memcpy(&wav_header[8], "WAVE", 4);
+    std::memcpy(&wav_header[12], "fmt ", 4);
+    (uint32_t&)wav_header[16] = 16;
+    (uint16_t&)(wav_header[20]) = 1; // 1 (非圧縮PCM)
+    (uint16_t&)(wav_header[22]) = (stereo ? 2 : 1); // チャネル数
     (uint32_t&)(wav_header[24]) = sizeof(uint16_t) * sample_rate;
     (uint32_t&)(wav_header[28]) = clock;
+    (uint16_t&)(wav_header[32]) = 2;
+    (uint16_t&)(wav_header[34]) = 16;
+    std::memcpy(&wav_header[36], "data", 4);
     (uint32_t&)(wav_header[40]) = data_size;
     return wav_header;
 }
