@@ -515,28 +515,28 @@ void VskPhrase::realize(VskSoundPlayer *player, VSK_PCM16_VALUE*& data, size_t& 
 static uint8_t* get_wav_header(uint32_t data_size, uint32_t clock, uint32_t sample_rate, bool stereo)
 {
     // リニアPCM16ビット
-    static uint8_t wav_header_template[WAV_HEADER_SIZE] = {
-        0x52, 0x49, 0x46, 0x46,  // 'RIFF'
-        0x00, 0x00, 0x00, 0x00,  // RIFFチャンクのサイズ(size + 12 + 16 + 8)
-        0x57, 0x41, 0x56, 0x45,  // 'WAVE'
-        0x66, 0x6D, 0x74, 0x20,  // 'fmt'
-        0x10, 0x00, 0x00, 0x00,  // fmtチャンクのバイト数 = 16(リニアPCM)
-        0x01, 0x00,              // フォーマット = 1(非圧縮PCM)
-        0x01, 0x00,              // チャネル数
-        0x00, 0x00, 0x00, 0x00,  // サンプリング周波数 = sample_rate
-        0x00, 0x7D, 0x00, 0x00,  // バイト/秒 = 32000
-        0x02, 0x00,              // ブロックサイズ = 16bit x 1(モノラル) = 2byte
-        0x10, 0x00,              // ビット/サンプル = 16
-        0x64, 0x61, 0x74, 0x61,  // 'data'
-        0x00, 0x00, 0x00, 0x00   // size (データバイト数)
+    static uint8_t wav_header[WAV_HEADER_SIZE] = {
+        /* 0 */ 0x52, 0x49, 0x46, 0x46,  // 'RIFF'
+        /* 4 */ 0x00, 0x00, 0x00, 0x00,  // RIFFチャンクのサイズ(size + 12 + 16 + 8)
+        /* 8 */ 0x57, 0x41, 0x56, 0x45,  // 'WAVE'
+        /* 12 */ 0x66, 0x6D, 0x74, 0x20,  // 'fmt '
+        /* 16 */ 0x10, 0x00, 0x00, 0x00,  // fmtチャンクのバイト数 = 16(リニアPCM)
+        /* 20 */ 0x01, 0x00,              // フォーマット = 1(非圧縮PCM)
+        /* 22 */ 0x01, 0x00,              // チャネル数
+        /* 24 */ 0x00, 0x00, 0x00, 0x00,  // サンプリング周波数 = sample_rate
+        /* 28 */ 0x00, 0x7D, 0x00, 0x00,  // バイト/秒 = 32000
+        /* 32 */ 0x02, 0x00,              // ブロックサイズ = 16bit x 1(モノラル) = 2byte
+        /* 34 */ 0x10, 0x00,              // ビット/サンプル = 16
+        /* 36 */ 0x64, 0x61, 0x74, 0x61,  // 'data'
+        /* 40 */ 0x00, 0x00, 0x00, 0x00   // size (データバイト数)
     };
     uint32_t riff_size = data_size + WAV_HEADER_SIZE - 8;
-    (uint32_t&)(wav_header_template[4]) = riff_size;
-    (uint32_t&)(wav_header_template[22]) = (stereo ? 2 : 1);
-    (uint32_t&)(wav_header_template[24]) = sizeof(uint16_t) * sample_rate;
-    (uint32_t&)(wav_header_template[28]) = clock;
-    (uint32_t&)(wav_header_template[40]) = data_size;
-    return wav_header_template;
+    (uint32_t&)(wav_header[4]) = riff_size;
+    (uint16_t&)(wav_header[22]) = (stereo ? 2 : 1);
+    (uint32_t&)(wav_header[24]) = sizeof(uint16_t) * sample_rate;
+    (uint32_t&)(wav_header[28]) = clock;
+    (uint32_t&)(wav_header[40]) = data_size;
+    return wav_header;
 }
 
 bool VskSoundPlayer::wait_for_stop(uint32_t milliseconds) {
