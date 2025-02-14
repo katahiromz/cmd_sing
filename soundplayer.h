@@ -21,6 +21,10 @@
 #endif
 
 //////////////////////////////////////////////////////////////////////////////
+
+#define VSK_PCM16_VALUE int16_t
+
+//////////////////////////////////////////////////////////////////////////////
 // pevent --- portable event objects
 
 #include "pevent/pevent.h"
@@ -238,7 +242,7 @@ struct VskSoundPlayer {
     std::vector<std::shared_ptr<VskNote>>       m_notes;
     YM2203                                      m_ym;
     std::unordered_map<int, VskSpecialActionFn> m_action_no_to_special_action;
-    std::vector<FM_SAMPLETYPE>                  m_samples;
+    std::vector<VSK_PCM16_VALUE>                m_pcm_values;
 
     VskSoundPlayer() : m_playing_music(false), m_stopping_event(false, false) { }
     virtual ~VskSoundPlayer() { }
@@ -248,7 +252,7 @@ struct VskSoundPlayer {
     bool play_and_wait(VskScoreBlock& block, uint32_t milliseconds, bool stereo);
     void stop();
     bool save_as_wav(VskScoreBlock& block, const wchar_t *filename, bool stereo);
-    bool generate_pcm_raw(VskScoreBlock& block, std::vector<FM_SAMPLETYPE>& samples, bool stereo);
+    bool generate_pcm_raw(VskScoreBlock& block, std::vector<VSK_PCM16_VALUE>& pcm_values, bool stereo);
 
     void register_special_action(int action_no, VskSpecialActionFn fn = nullptr);
     void do_special_action(int action_no);

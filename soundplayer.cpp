@@ -340,7 +340,7 @@ void VskPhrase::calc_total() {
     m_goal = gate;
 } // VskPhrase::calc_total
 
-void VskPhrase::realize(VskSoundPlayer *player, FM_SAMPLETYPE*& data, size_t& data_size) {
+void VskPhrase::realize(VskSoundPlayer *player, VSK_PCM16_VALUE*& data, size_t& data_size) {
     destroy();
     calc_total();
     rescan_notes();
@@ -356,9 +356,9 @@ void VskPhrase::realize(VskSoundPlayer *player, FM_SAMPLETYPE*& data, size_t& da
     auto size = uint32_t((m_goal + 1) * SAMPLERATE * 2);
     if (size % 2 != 0) // It fails when size was an odd number
         ++size;
-    data_size = size * sizeof(FM_SAMPLETYPE);
-    data = new FM_SAMPLETYPE[size];
-    std::memset(&data[0], 0, size * sizeof(FM_SAMPLETYPE));
+    data_size = size * sizeof(VSK_PCM16_VALUE);
+    data = new VSK_PCM16_VALUE[size];
+    std::memset(&data[0], 0, size * sizeof(VSK_PCM16_VALUE));
 
     if (m_setting.m_fm) { // FM sound?
         int ch = FM_CH1;
@@ -548,14 +548,14 @@ bool VskSoundPlayer::play_and_wait(VskScoreBlock& block, uint32_t milliseconds, 
     return wait_for_stop(milliseconds);
 }
 
-bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<FM_SAMPLETYPE>& samples, bool stereo) {
-    std::vector<FM_SAMPLETYPE *> raw_data;
+bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<VSK_PCM16_VALUE>& pcm_values, bool stereo) {
+    std::vector<VSK_PCM16_VALUE *> raw_data;
     std::vector<size_t> data_sizes;
 
     // realize phrases
     for (auto& phrase : block) {
         if (phrase) {
-            FM_SAMPLETYPE *data;
+            VSK_PCM16_VALUE *data;
             size_t data_size;
             phrase->realize(this, data, data_size);
             raw_data.push_back(data);
@@ -569,33 +569,30 @@ bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<FM_SAMPL
             data_size = data_sizes[i];
     }
 
-    size_t num_samples = data_size / sizeof(FM_SAMPLETYPE);
+    size_t num_samples = data_size / sizeof(VSK_PCM16_VALUE);
 
-    if (stereo) {
-        samples.resize(num_samples * 2);
-    } else {
-        samples.resize(num_samples);
-    }
+    pcm_values.resize(num_samples * (stereo ? 2 : 1));
 
     for (size_t isample = 0; isample < num_samples; ++isample) {
         // mixing
         int32_t value = 0;
         for (size_t i = 0; i < raw_data.size(); ++i) {
-            if (isample < data_sizes[i] / sizeof(FM_SAMPLETYPE))
+            if (isample < data_sizes[i] / sizeof(VSK_PCM16_VALUE))
                 value += raw_data[i][isample];
         }
         // clipping value
-        if (value < std::numeric_limits<FM_SAMPLETYPE>::min())
-            value = std::numeric_limits<FM_SAMPLETYPE>::min();
-        else if (value > std::numeric_limits<FM_SAMPLETYPE>::max())
-            value = std::numeric_limits<FM_SAMPLETYPE>::max();
-        
+        if (value < std::numeric_limits<VSK_PCM16_VALUE>::min())
+            value = std::numeric_limits<VSK_PCM16_VALUE>::min();
+        else if (value > std::numeric_limits<VSK_PCM16_VALUE>::max())
+            value = std::numeric_limits<VSK_PCM16_VALUE>::max();
+
+        // double the values if stereo
         int32_t sample_value = (isample < data_size) ? value : 0;
         if (stereo) {
-            samples[isample * 2] = sample_value;
-            samples[isample * 2 + 1] = sample_value;
+            pcm_values[isample * 2] = sample_value;
+            pcm_values[isample * 2 + 1] = sample_value;
         } else {
-            samples[isample] = sample_value;
+            pcm_values[isample] = sample_value;
         }
     }
 
@@ -608,29 +605,29 @@ bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<FM_SAMPL
 
 bool VskSoundPlayer::save_as_wav(VskScoreBlock& block, const wchar_t *filename, bool stereo) {
 
-    std::vector<FM_SAMPLETYPE> samples;
-    generate_pcm_raw(block, samples, stereo);
-    size_t data_size = samples.size() * sizeof(FM_SAMPLETYPE);
+    std::vector<VSK_PCM16_VALUE> pcm_values;
+    generate_pcm_raw(block, pcm_values, stereo);
+    size_t data_size = pcm_values.size() * sizeof(VSK_PCM16_VALUE);
 
     FILE *fout = _wfopen(filename, L"wb");
     if (!fout)
         return false;
     auto wav_header = get_wav_header(data_size, CLOCK, SAMPLERATE, stereo);
     std::fwrite(wav_header, WAV_HEADER_SIZE, 1, fout);
-    std::fwrite(samples.data(), data_size, 1, fout);
+    std::fwrite(pcm_values.data(), data_size, 1, fout);
     std::fclose(fout);
 
     return true;
 }
 
 void VskSoundPlayer::play(VskScoreBlock& block, bool stereo) {
-    generate_pcm_raw(block, m_samples, stereo);
+    generate_pcm_raw(block, m_pcm_values, stereo);
 
     for (auto& phrase : block) {
         phrase->execute_special_actions();
     }
 
-    vsk_sound_play(m_samples.data(), m_samples.size() * sizeof(FM_SAMPLETYPE), stereo);
+    vsk_sound_play(m_pcm_values.data(), m_pcm_values.size() * sizeof(VSK_PCM16_VALUE), stereo);
 } // VskSoundPlayer::play
 
 void VskSoundPlayer::stop() {
