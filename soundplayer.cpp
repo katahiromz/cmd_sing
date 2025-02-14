@@ -554,7 +554,8 @@ bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<VSK_PCM1
     std::vector<VSK_PCM16_VALUE *> raw_data;
     std::vector<size_t> data_sizes;
 
-    // realize phrases
+    // Realize phrases (stereo)
+    const int source_num_channels = 2;
     for (auto& phrase : block) {
         if (phrase) {
             VSK_PCM16_VALUE *data;
@@ -565,36 +566,37 @@ bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<VSK_PCM1
         }
     }
 
+    // Get maximum data size
     size_t data_size = 0;
     for (size_t i = 0; i < raw_data.size(); ++i) {
         if (data_size < data_sizes[i])
             data_size = data_sizes[i];
     }
 
-    size_t num_samples = data_size / sizeof(VSK_PCM16_VALUE);
+    size_t num_samples = data_size / sizeof(VSK_PCM16_VALUE) / source_num_channels;
+    int num_channels = (stereo ? 2 : 1);
+    pcm_values.resize(num_samples * num_channels);
 
-    pcm_values.resize(num_samples * (stereo ? 2 : 1));
-
-    for (size_t isample = 0; isample < num_samples; ++isample) {
-        // mixing
+    for (size_t isample = 0; isample < num_samples * source_num_channels; ++isample) {
+        // Mixing
         int32_t value = 0;
         for (size_t i = 0; i < raw_data.size(); ++i) {
             if (isample < data_sizes[i] / sizeof(VSK_PCM16_VALUE))
                 value += raw_data[i][isample];
         }
-        // clipping value
+
+        // Clipping value
         if (value < std::numeric_limits<VSK_PCM16_VALUE>::min())
             value = std::numeric_limits<VSK_PCM16_VALUE>::min();
         else if (value > std::numeric_limits<VSK_PCM16_VALUE>::max())
             value = std::numeric_limits<VSK_PCM16_VALUE>::max();
 
-        // double the values if stereo
-        int32_t sample_value = (isample < data_size) ? value : 0;
+        // If it's not stereo, make it mono
+        int32_t sample_value = ((isample < data_size) ? value : 0);
         if (stereo) {
-            pcm_values[isample * 2] = sample_value;
-            pcm_values[isample * 2 + 1] = sample_value;
-        } else {
             pcm_values[isample] = sample_value;
+        } else {
+            pcm_values[isample / 2] = sample_value;
         }
     }
 
@@ -606,7 +608,6 @@ bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<VSK_PCM1
 }
 
 bool VskSoundPlayer::save_as_wav(VskScoreBlock& block, const wchar_t *filename, bool stereo) {
-    // TODO: generate_pcm_rawが想定の2倍のサンプルを生成しているようだ。
     std::vector<VSK_PCM16_VALUE> pcm_values;
     generate_pcm_raw(block, pcm_values, stereo);
     size_t data_size = pcm_values.size() * sizeof(VSK_PCM16_VALUE);
@@ -615,9 +616,7 @@ bool VskSoundPlayer::save_as_wav(VskScoreBlock& block, const wchar_t *filename, 
     if (!fout)
         return false;
 
-    // TODO: ここは auto wav_header = get_wav_header(data_size, SAMPLERATE, 16, stereo); でなければならない。
-    // TODO: VskPhrase::realize を修正する必要がありそうだ。
-    auto wav_header = get_wav_header(data_size, 2 * SAMPLERATE, 16, stereo);
+    auto wav_header = get_wav_header(data_size, SAMPLERATE, 16, stereo);
     std::fwrite(wav_header, WAV_HEADER_SIZE, 1, fout);
     std::fwrite(pcm_values.data(), data_size, 1, fout);
     std::fclose(fout);
