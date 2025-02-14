@@ -349,7 +349,6 @@ void VskPhrase::realize(VskSoundPlayer *player, VSK_PCM16_VALUE*& data, size_t& 
 
     // Initialize YM2203
     YM2203& ym = player->m_ym;
-    ym.init(CLOCK, SAMPLERATE);
 
     // Allocate the wave data
     auto count = uint32_t((m_goal + 1) * SAMPLERATE * 2); // stereo
@@ -539,6 +538,13 @@ get_wav_header(uint32_t data_size, uint32_t sample_rate, uint16_t bit_depth, boo
     std::memcpy(&wav_header[40], &data_size, 4);
 
     return wav_header;
+}
+
+VskSoundPlayer::VskSoundPlayer()
+    : m_playing_music(false), m_stopping_event(false, false)
+{
+    // YMを初期化
+    m_ym.init(CLOCK, SAMPLERATE, NULL);
 }
 
 bool VskSoundPlayer::wait_for_stop(uint32_t milliseconds) {

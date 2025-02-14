@@ -244,7 +244,7 @@ struct VskSoundPlayer {
     std::unordered_map<int, VskSpecialActionFn> m_action_no_to_special_action;
     std::vector<VSK_PCM16_VALUE>                m_pcm_values;
 
-    VskSoundPlayer() : m_playing_music(false), m_stopping_event(false, false) { }
+    VskSoundPlayer();
     virtual ~VskSoundPlayer() { }
 
     void play(VskScoreBlock& block, bool stereo);
