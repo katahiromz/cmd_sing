@@ -352,14 +352,14 @@ void VskPhrase::realize(VskSoundPlayer *player, VSK_PCM16_VALUE*& data, size_t& 
     ym.init(CLOCK, SAMPLERATE);
 
     // Allocate the wave data
-    uint32_t isample = 0;
     auto size = uint32_t((m_goal + 1) * SAMPLERATE * 2);
     if (size % 2 != 0) // It fails when size was an odd number
         ++size;
     data_size = size * sizeof(VSK_PCM16_VALUE);
     data = new VSK_PCM16_VALUE[size];
-    std::memset(&data[0], 0, size * sizeof(VSK_PCM16_VALUE));
+    std::memset(&data[0], 0, data_size);
 
+    uint32_t isample = 0;
     if (m_setting.m_fm) { // FM sound?
         int ch = FM_CH1;
 
