@@ -616,7 +616,7 @@ bool VskSoundPlayer::save_as_wav(VskScoreBlock& block, const wchar_t *filename, 
     FILE *fout = _wfopen(filename, L"wb");
     if (!fout)
         return false;
-    auto wav_header = get_wav_header(data_size, SAMPLERATE * 2, 16, stereo);
+    auto wav_header = get_wav_header(data_size, SAMPLERATE, 16 * 2, stereo);
     std::fwrite(wav_header, WAV_HEADER_SIZE, 1, fout);
     std::fwrite(pcm_values.data(), data_size, 1, fout);
     std::fclose(fout);
