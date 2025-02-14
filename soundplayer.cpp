@@ -540,7 +540,7 @@ get_wav_header(uint32_t data_size, uint32_t sample_rate, uint16_t bit_depth, boo
     return wav_header;
 }
 
-VskSoundPlayer::VskSoundPlayer()
+VskSoundPlayer::VskSoundPlayer(const char *rhythm_path)
     : m_playing_music(false), m_stopping_event(false, false)
 {
     // YMを初期化
