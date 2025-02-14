@@ -544,7 +544,7 @@ VskSoundPlayer::VskSoundPlayer(const char *rhythm_path)
     : m_playing_music(false), m_stopping_event(false, false)
 {
     // YMを初期化
-    m_ym.init(CLOCK, SAMPLERATE, NULL);
+    m_ym.init(CLOCK, SAMPLERATE, rhythm_path);
 }
 
 bool VskSoundPlayer::wait_for_stop(uint32_t milliseconds) {
