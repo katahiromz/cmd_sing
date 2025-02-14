@@ -422,47 +422,47 @@ RET CMD_SING::run()
 
     if (m_output_file.size())
     {
-        if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing_save(m_str_to_play.c_str(), m_output_file.c_str(), m_stereo))
+        if (VSK_SOUND_ERR err = vsk_sound_cmd_sing_save(m_str_to_play.c_str(), m_output_file.c_str(), m_stereo))
         {
-            RET ret2 = RET_BAD_CALL;
-            switch (ret)
+            RET ret = RET_BAD_CALL;
+            switch (err)
             {
-            case 1:
+            case VSK_SOUND_ERR_ILLEGAL:
                 my_puts(get_text(IDT_BAD_CALL), stderr);
                 break;
-            case 2:
+            case VSK_SOUND_ERR_IO_ERROR:
                 my_printf(stderr, get_text(IDT_CANT_OPEN_FILE), m_output_file.c_str());
-                ret2 = RET_CANT_OPEN_FILE;
+                ret = RET_CANT_OPEN_FILE;
                 break;
             default:
                 assert(0);
             }
             do_beep();
             vsk_sound_exit();
-            return ret2;
+            return ret;
         }
         vsk_sound_exit();
         return RET_SUCCESS;
     }
 
-    if (VSK_SOUND_ERR ret = vsk_sound_cmd_sing(m_str_to_play.c_str(), m_stereo))
+    if (VSK_SOUND_ERR err = vsk_sound_cmd_sing(m_str_to_play.c_str(), m_stereo))
     {
-        RET ret2 = RET_BAD_CALL;
-        switch (ret)
+        RET ret = RET_BAD_CALL;
+        switch (err)
         {
-        case 1:
+        case VSK_SOUND_ERR_ILLEGAL:
             my_puts(get_text(IDT_BAD_CALL), stderr);
             break;
-        case 2:
+        case VSK_SOUND_ERR_IO_ERROR:
             my_puts(get_text(IDT_CANT_OPEN_FILE), stderr);
-            ret2 = RET_CANT_OPEN_FILE;
+            ret = RET_CANT_OPEN_FILE;
             break;
         default:
             assert(0);
         }
         do_beep();
         vsk_sound_exit();
-        return ret2;
+        return ret;
     }
 
     vsk_sound_wait(-1);
