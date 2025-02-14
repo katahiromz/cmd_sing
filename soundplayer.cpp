@@ -511,25 +511,35 @@ void VskPhrase::realize(VskSoundPlayer *player, VSK_PCM16_VALUE*& data, size_t& 
 
 #define WAV_HEADER_SIZE    44
 
-// TODO: stereo
 static uint8_t*
-get_wav_header(uint32_t data_size, uint32_t clock, uint32_t sample_rate, bool stereo)
+get_wav_header(uint32_t data_size, uint32_t sample_rate, uint16_t bit_depth, bool stereo)
 {
-    // リニアPCM16ビット
     static uint8_t wav_header[WAV_HEADER_SIZE] = { 0 };
+
     std::memcpy(&wav_header[0], "RIFF", 4);
-    (uint32_t&)wav_header[4] = data_size + WAV_HEADER_SIZE - 8;
     std::memcpy(&wav_header[8], "WAVE", 4);
     std::memcpy(&wav_header[12], "fmt ", 4);
-    (uint32_t&)wav_header[16] = 16;
-    (uint16_t&)(wav_header[20]) = 1; // 1 (非圧縮PCM)
-    (uint16_t&)(wav_header[22]) = (stereo ? 2 : 1); // チャネル数
-    (uint32_t&)(wav_header[24]) = sizeof(uint16_t) * sample_rate;
-    (uint32_t&)(wav_header[28]) = clock;
-    (uint16_t&)(wav_header[32]) = 2;
-    (uint16_t&)(wav_header[34]) = 16;
     std::memcpy(&wav_header[36], "data", 4);
-    (uint32_t&)(wav_header[40]) = data_size;
+
+    uint16_t num_channels = (stereo ? 2 : 1);
+    uint16_t block_align = num_channels * (bit_depth / 8);
+    uint32_t byte_rate = sample_rate * num_channels * (bit_depth / 8);
+
+    uint32_t chunk_size = data_size + WAV_HEADER_SIZE - 8;
+    uint32_t subchunk1_size = 16;
+    uint16_t audio_format = 1; // PCM
+
+    // Windows なのでリトルエンディアンを仮定する
+    std::memcpy(&wav_header[4], &chunk_size, 4);
+    std::memcpy(&wav_header[16], &subchunk1_size, 4);
+    std::memcpy(&wav_header[20], &audio_format, 2);
+    std::memcpy(&wav_header[22], &num_channels, 2);
+    std::memcpy(&wav_header[24], &sample_rate, 4);
+    std::memcpy(&wav_header[28], &byte_rate, 4);
+    std::memcpy(&wav_header[32], &block_align, 2);
+    std::memcpy(&wav_header[34], &bit_depth, 2);
+    std::memcpy(&wav_header[40], &data_size, 4);
+
     return wav_header;
 }
 
@@ -606,7 +616,7 @@ bool VskSoundPlayer::save_as_wav(VskScoreBlock& block, const wchar_t *filename, 
     FILE *fout = _wfopen(filename, L"wb");
     if (!fout)
         return false;
-    auto wav_header = get_wav_header(data_size, CLOCK, SAMPLERATE, stereo);
+    auto wav_header = get_wav_header(data_size, SAMPLERATE * 2, 16, stereo);
     std::fwrite(wav_header, WAV_HEADER_SIZE, 1, fout);
     std::fwrite(pcm_values.data(), data_size, 1, fout);
     std::fclose(fout);
