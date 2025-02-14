@@ -608,7 +608,7 @@ bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<VSK_PCM1
 }
 
 bool VskSoundPlayer::save_as_wav(VskScoreBlock& block, const wchar_t *filename, bool stereo) {
-
+    // TODO: generate_pcm_rawが想定の2倍のサンプルを生成しているようだ。
     std::vector<VSK_PCM16_VALUE> pcm_values;
     generate_pcm_raw(block, pcm_values, stereo);
     size_t data_size = pcm_values.size() * sizeof(VSK_PCM16_VALUE);
@@ -616,6 +616,9 @@ bool VskSoundPlayer::save_as_wav(VskScoreBlock& block, const wchar_t *filename, 
     FILE *fout = _wfopen(filename, L"wb");
     if (!fout)
         return false;
+
+    // TODO: ここは auto wav_header = get_wav_header(data_size, SAMPLERATE, 16, stereo); でなければならない。
+    // TODO: VskPhrase::realize を修正する必要がありそうだ。
     auto wav_header = get_wav_header(data_size, 2 * SAMPLERATE, 16, stereo);
     std::fwrite(wav_header, WAV_HEADER_SIZE, 1, fout);
     std::fwrite(pcm_values.data(), data_size, 1, fout);
