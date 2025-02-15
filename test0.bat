@@ -1,1 +1,1 @@
-cmd_sing -reset "CDEFEDC"
+cmd_sing -stopm "CDEFEDC"
