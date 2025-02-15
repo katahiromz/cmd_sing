@@ -80,15 +80,15 @@ LPCTSTR get_text(INT id)
     {
         switch (id)
         {
-        case IDT_VERSION: return TEXT("cmd_sing バージョン 1.3 by 片山博文MZ\n");
+        case IDT_VERSION: return TEXT("cmd_sing バージョン 1.4 by 片山博文MZ\n");
         case IDT_HELP:
             return TEXT("使い方: cmd_sing [オプション] 文字列\n")
                    TEXT("\n")
                    TEXT("オプション:\n")
                    TEXT("  -D変数名=値            変数に代入。\n")
                    TEXT("  -save_wav 出力.wav     WAVファイルとして保存。\n")
-                   TEXT("  -reset                 設定をリセット。\n")
-                   TEXT("  -stereo                音をステレオにする。\n")
+                   TEXT("  -stopm                 音楽を止めて設定をリセット。\n")
+                   TEXT("  -mono                  音をモノラルにする。\n")
                    TEXT("  -help                  このメッセージを表示する。\n")
                    TEXT("  -version               バージョン情報を表示する。\n")
                    TEXT("\n")
@@ -107,15 +107,15 @@ LPCTSTR get_text(INT id)
     {
         switch (id)
         {
-        case IDT_VERSION: return TEXT("cmd_sing version 1.3 by katahiromz\n");
+        case IDT_VERSION: return TEXT("cmd_sing version 1.4 by katahiromz\n");
         case IDT_HELP:
             return TEXT("Usage: cmd_sing [Options] string\n")
                    TEXT("\n")
                    TEXT("Options:\n")
                    TEXT("  -DVAR=VALUE            Assign to a variable.\n")
                    TEXT("  -save_wav output.wav   Save as WAV file.\n")
-                   TEXT("  -reset                 Reset settings.\n")
-                   TEXT("  -stereo                Make sound stereo.\n")
+                   TEXT("  -stopm                 Stop music and reset settings.\n")
+                   TEXT("  -mono                  Make sound mono.\n")
                    TEXT("  -help                  Display this message.\n")
                    TEXT("  -version               Display version info.\n")
                    TEXT("\n")
@@ -256,8 +256,8 @@ struct CMD_SING
     bool m_version = false;
     std::wstring m_str_to_play;
     std::wstring m_output_file;
-    bool m_reset = false;
-    bool m_stereo = false;
+    bool m_stopm = false;
+    bool m_stereo = true;
 
     RET parse_cmd_line(int argc, wchar_t **argv);
     RET run();
@@ -345,15 +345,15 @@ RET CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             }
         }
 
-        if (_wcsicmp(arg, L"-reset") == 0 || _wcsicmp(arg, L"--reset") == 0)
+        if (_wcsicmp(arg, L"-stopm") == 0 || _wcsicmp(arg, L"--stopm") == 0)
         {
-            m_reset = true;
+            m_stopm = true;
             continue;
         }
 
-        if (_wcsicmp(arg, L"-stereo") == 0 || _wcsicmp(arg, L"--stereo") == 0)
+        if (_wcsicmp(arg, L"-mono") == 0 || _wcsicmp(arg, L"--mono") == 0)
         {
-            m_stereo = true;
+            m_stereo = false;
             continue;
         }
 
@@ -419,8 +419,11 @@ RET CMD_SING::run()
         return RET_BAD_SOUND_INIT;
     }
 
-    if (!m_reset)
+    if (m_stopm) {
+        // TODO: Stop music
+    } else {
         load_settings();
+    }
 
     if (m_output_file.size())
     {

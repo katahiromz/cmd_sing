@@ -367,7 +367,9 @@ void VskPhrase::realize(VskSoundPlayer *player, VSK_PCM16_VALUE*& data, size_t *
         auto& timbre = m_setting.m_timbre;
         timbre.set(ym2203_tone_table[m_setting.m_tone]);
         ym.set_timbre(ch, &timbre);
+
         VskLFOCtrl lc;
+        lc.init_for_timbre(&timbre);
 
         for (auto& note : m_notes) { // For each note
             if (note.m_key == KEY_SPECIAL_ACTION) { // Special action?
@@ -400,6 +402,15 @@ void VskPhrase::realize(VskSoundPlayer *player, VSK_PCM16_VALUE*& data, size_t *
                 auto type = note.m_data;
                 m_player->write_reg(ADDR_SSG_ENV_TYPE, (type & 0x0F));
                 continue;
+            }
+
+            // 左右を設定する
+            auto LR = note.m_LR;
+            auto pms = timbre.pms;
+            for (int i = 0; i < 3; ++i) {
+                auto ams = timbre.ams[i];
+                uint8_t value = (uint8_t)((LR << 6) | (ams << 4) | pms);
+                ym.write_reg(0xB4 + i, value);
             }
 
             if (note.m_key != KEY_SPECIAL_REST) { // Not special rest?
@@ -600,10 +611,8 @@ bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<VSK_PCM1
     values.resize(source_num_samples * num_channels);
 
     // 波形データを構築
+    VSK_PCM16_VALUE prev_value = 0;
     for (size_t ivalue = 0; ivalue < source_num_values; ++ivalue) {
-        if (!stereo && (ivalue & 1))
-            continue; // モノラルでivalueが奇数の場合は無視
-
         // Mixing
         int32_t value = 0;
         for (size_t i = 0; i < raw_data.size(); ++i) {
@@ -617,12 +626,15 @@ bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<VSK_PCM1
         else if (value > std::numeric_limits<VSK_PCM16_VALUE>::max())
             value = std::numeric_limits<VSK_PCM16_VALUE>::max();
 
-        // 作成する波形がステレオでなければモノラルにする。転送先に格納
+        // 転送先に格納
         int32_t sample_value = ((ivalue < data_size) ? value : 0);
-        if (stereo) {
-            values[ivalue] = sample_value;
-        } else {
-            values[ivalue / 2] = sample_value;
+        if (stereo) { // ステレオの場合
+            values[ivalue] = (VSK_PCM16_VALUE)sample_value;
+        } else { // モノラルの場合
+            if (ivalue & 1) // 奇数の場合
+                values[ivalue >> 1] = (VSK_PCM16_VALUE)((prev_value + sample_value) >> 1);
+            else // 偶数の場合
+                prev_value = sample_value;
         }
     }
 
