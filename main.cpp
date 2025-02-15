@@ -280,7 +280,7 @@ bool CMD_SING::load_settings()
 
     DWORD cbValue = size;
     error = RegQueryValueExW(hKey, L"setting", NULL, NULL, setting.data(), &cbValue);
-    if (!error)
+    if (!error && cbValue == size)
         vsk_cmd_sing_set_setting(setting);
 
     RegCloseKey(hKey);
