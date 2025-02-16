@@ -258,6 +258,7 @@ struct CMD_SING
     std::wstring m_output_file;
     bool m_stopm = false;
     bool m_stereo = true;
+    bool m_no_reg = false;
     std::map<VskString, VskString> m_variables;
 
     RET parse_cmd_line(int argc, wchar_t **argv);
@@ -269,6 +270,9 @@ struct CMD_SING
 // レジストリから設定を読み込む
 bool CMD_SING::load_settings()
 {
+    if (m_no_reg)
+        return false;
+
     HKEY hKey;
 
     // レジストリを開く
@@ -317,6 +321,9 @@ bool CMD_SING::load_settings()
 // レジストリへ設定を書き込む
 bool CMD_SING::save_settings()
 {
+    if (m_no_reg)
+        return false;
+
     std::vector<uint8_t> setting;
     if (!vsk_cmd_sing_get_setting(setting))
         return false;
@@ -420,9 +427,17 @@ RET CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             continue;
         }
 
+        // hidden feature
         if (_wcsicmp(arg, L"-no-beep") == 0 || _wcsicmp(arg, L"--no-beep") == 0)
         {
             g_no_beep = true;
+            continue;
+        }
+
+        // hidden feature
+        if (_wcsicmp(arg, L"-no-reg") == 0 || _wcsicmp(arg, L"--no-reg") == 0)
+        {
+            m_no_reg = true;
             continue;
         }
 
