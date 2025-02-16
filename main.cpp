@@ -364,6 +364,12 @@ retry:
     return true;
 }
 
+// アプリのレジストリキーを消す
+void erase_reg_settings(void)
+{
+    RegDeleteKeyW(HKEY_CURRENT_USER, L"Software\\Katayama Hirofumi MZ\\cmd_sing");
+}
+
 RET CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
 {
     if (argc <= 1)
@@ -623,6 +629,7 @@ int main(void)
         std::printf("^C\nBreak\nOk\n");
         std::fflush(stdout);
         do_beep();
+        erase_reg_settings();
         return RET_CANCELED;
     }
 
