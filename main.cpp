@@ -258,6 +258,7 @@ struct CMD_SING
     std::wstring m_output_file;
     bool m_stopm = false;
     bool m_stereo = true;
+    std::map<VskString, VskString> m_variables;
 
     RET parse_cmd_line(int argc, wchar_t **argv);
     RET run();
@@ -265,43 +266,99 @@ struct CMD_SING
     bool save_settings();
 };
 
+// レジストリから設定を読み込む
 bool CMD_SING::load_settings()
 {
     HKEY hKey;
 
+    // レジストリを開く
     LSTATUS error = RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Katayama Hirofumi MZ\\cmd_sing", 0,
                                   KEY_READ, &hKey);
     if (error)
         return false;
 
+    // 音声の設定のサイズ
     size_t size = vsk_cmd_sing_get_setting_size();
     std::vector<uint8_t> setting;
     setting.resize(size);
 
+    // 設定項目を読み込む
     DWORD cbValue = size;
     error = RegQueryValueExW(hKey, L"setting", NULL, NULL, setting.data(), &cbValue);
     if (!error && cbValue == size)
         vsk_cmd_sing_set_setting(setting);
 
+    // 変数項目を読み込む
+    for (DWORD dwIndex = 0; ; ++dwIndex)
+    {
+        CHAR szName[MAX_PATH], szValue[512];
+        DWORD cchName = _countof(szName);
+        DWORD cbValue = sizeof(szValue);
+        error = RegEnumValueA(hKey, dwIndex, szName, &cchName, NULL, NULL, (BYTE *)szValue, &cbValue);
+        szName[_countof(szName) - 1] = 0; // Avoid buffer overrun
+        szValue[_countof(szValue) - 1] = 0; // Avoid buffer overrun
+        if (error)
+            break;
+
+        if (std::memcmp(szName, "VAR_", 4 * sizeof(CHAR)) != 0)
+            continue;
+
+        CharUpperA(szName);
+        CharUpperA(szValue);
+        g_variables[&szName[4]] = szValue;
+    }
+
+    // レジストリを閉じる
     RegCloseKey(hKey);
 
     return true;
 }
 
+// レジストリへ設定を書き込む
 bool CMD_SING::save_settings()
 {
     std::vector<uint8_t> setting;
     if (!vsk_cmd_sing_get_setting(setting))
         return false;
 
+    // レジストリを作成
     HKEY hKey;
     LSTATUS error = RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\Katayama Hirofumi MZ\\cmd_sing", 0,
-                                    NULL, 0, KEY_WRITE, NULL, &hKey, NULL);
+                                    NULL, 0, KEY_READ | KEY_WRITE, NULL, &hKey, NULL);
     if (error)
         return false;
 
+    // 音声の設定を書き込む
     RegSetValueExW(hKey, L"setting", 0, REG_BINARY, setting.data(), (DWORD)setting.size());
 
+    // レジストリの変数項目を消す
+retry:
+    for (DWORD dwIndex = 0; ; ++dwIndex)
+    {
+        CHAR szName[MAX_PATH];
+        DWORD cchName = _countof(szName);
+        error = RegEnumValueA(hKey, dwIndex, szName, &cchName, NULL, NULL, NULL, NULL);
+        szName[_countof(szName) - 1] = 0; // Avoid buffer overrun
+        if (error)
+            break;
+
+        if (std::memcmp(szName, "VAR_", 4 * sizeof(CHAR)) != 0)
+            continue;
+
+        RegDeleteValueA(hKey, szName);
+        goto retry;
+    }
+
+    // 新しい変数項目群を書き込む
+    for (auto& pair : g_variables)
+    {
+        std::string name = "VAR_";
+        name += pair.first;
+        DWORD cbValue = (pair.second.size() + 1) * sizeof(CHAR);
+        RegSetValueExA(hKey, name.c_str(), 0, REG_SZ, (BYTE *)pair.second.c_str(), cbValue);
+    }
+
+    // レジストリを閉じる
     RegCloseKey(hKey);
 
     return true;
@@ -376,7 +433,7 @@ RET CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             auto value = str.substr(ich + 1);
             CharUpperA(&var[0]);
             CharUpperA(&value[0]);
-            g_variables[var] = value;
+            m_variables[var] = value;
             continue;
         }
 
@@ -419,10 +476,18 @@ RET CMD_SING::run()
         return RET_BAD_SOUND_INIT;
     }
 
-    if (m_stopm) {
-        // TODO: Stop music
-    } else {
-        load_settings();
+    load_settings();
+
+    // g_variablesをm_variablesで上書き
+    for (auto& pair : m_variables)
+        g_variables[pair.first] = pair.second;
+
+    if (m_stopm) // 音楽を止めて設定をリセットする
+    {
+        // TODO: 音楽を止める
+        g_variables.clear();
+        m_variables.clear();
+        vsk_cmd_sing_reset_settings();
     }
 
     if (m_output_file.size())
@@ -443,6 +508,7 @@ RET CMD_SING::run()
                 assert(0);
             }
             do_beep();
+            save_settings();
             vsk_sound_exit();
             return ret;
         }
@@ -466,6 +532,7 @@ RET CMD_SING::run()
             assert(0);
         }
         do_beep();
+        save_settings();
         vsk_sound_exit();
         return ret;
     }
@@ -473,7 +540,6 @@ RET CMD_SING::run()
     vsk_sound_wait(-1);
 
     save_settings();
-
     vsk_sound_exit();
 
     return RET_SUCCESS;
