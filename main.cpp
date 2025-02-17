@@ -88,6 +88,7 @@ LPCTSTR get_text(INT id)
                    TEXT("  -D変数名=値            変数に代入。\n")
                    TEXT("  -save_wav 出力.wav     WAVファイルとして保存。\n")
                    TEXT("  -stopm                 音楽を止めて設定をリセット。\n")
+                   TEXT("  -stereo                音をステレオにする（デフォルト）。\n")
                    TEXT("  -mono                  音をモノラルにする。\n")
                    TEXT("  -help                  このメッセージを表示する。\n")
                    TEXT("  -version               バージョン情報を表示する。\n")
@@ -115,6 +116,7 @@ LPCTSTR get_text(INT id)
                    TEXT("  -DVAR=VALUE            Assign to a variable.\n")
                    TEXT("  -save_wav output.wav   Save as WAV file.\n")
                    TEXT("  -stopm                 Stop music and reset settings.\n")
+                   TEXT("  -stereo                Make sound stereo (default).\n")
                    TEXT("  -mono                  Make sound mono.\n")
                    TEXT("  -help                  Display this message.\n")
                    TEXT("  -version               Display version info.\n")
@@ -185,6 +187,14 @@ bool CMD_SING::load_settings()
     if (error)
         return false;
 
+    // ステレオかモノラルか？
+    {
+        DWORD dwValue, cbValue = sizeof(dwValue);
+        error = RegQueryValueExW(hKey, L"Stereo", NULL, NULL, (BYTE*)&dwValue, &cbValue);
+        if (!error)
+            m_stereo = !!dwValue;
+    }
+
     // 音声の設定のサイズ
     size_t size = vsk_cmd_sing_get_setting_size();
     std::vector<uint8_t> setting;
@@ -238,6 +248,12 @@ bool CMD_SING::save_settings()
                                     NULL, 0, KEY_READ | KEY_WRITE, NULL, &hKey, NULL);
     if (error)
         return false;
+
+    // ステレオかモノラルか？
+    {
+        DWORD dwValue = !!m_stereo, cbValue = sizeof(dwValue);
+        RegSetValueExW(hKey, L"Stereo", 0, REG_DWORD, (BYTE *)&dwValue, cbValue);
+    }
 
     // 音声の設定を書き込む
     RegSetValueExW(hKey, L"setting", 0, REG_BINARY, setting.data(), (DWORD)setting.size());
@@ -325,6 +341,12 @@ RET CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             continue;
         }
 
+        if (_wcsicmp(arg, L"-stereo") == 0 || _wcsicmp(arg, L"--stereo") == 0)
+        {
+            m_stereo = true;
+            continue;
+        }
+
         if (_wcsicmp(arg, L"-mono") == 0 || _wcsicmp(arg, L"--mono") == 0)
         {
             m_stereo = false;
@@ -395,13 +417,13 @@ RET CMD_SING::run()
         return RET_SUCCESS;
     }
 
+    load_settings();
+
     if (!vsk_sound_init(m_stereo))
     {
         my_puts(get_text(IDT_SOUND_INIT_FAILED), stderr);
         return RET_BAD_SOUND_INIT;
     }
-
-    load_settings();
 
     if (m_stopm) // 音楽を止めて設定をリセットする
     {
