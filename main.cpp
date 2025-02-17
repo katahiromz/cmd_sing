@@ -80,7 +80,7 @@ LPCTSTR get_text(INT id)
     {
         switch (id)
         {
-        case IDT_VERSION: return TEXT("cmd_sing バージョン 1.5 by 片山博文MZ\n");
+        case IDT_VERSION: return TEXT("cmd_sing バージョン 1.6 by 片山博文MZ\n");
         case IDT_HELP:
             return TEXT("使い方: cmd_sing [オプション] 文字列\n")
                    TEXT("\n")
@@ -107,7 +107,7 @@ LPCTSTR get_text(INT id)
     {
         switch (id)
         {
-        case IDT_VERSION: return TEXT("cmd_sing version 1.5 by katahiromz\n");
+        case IDT_VERSION: return TEXT("cmd_sing version 1.6 by katahiromz\n");
         case IDT_HELP:
             return TEXT("Usage: cmd_sing [Options] string\n")
                    TEXT("\n")
