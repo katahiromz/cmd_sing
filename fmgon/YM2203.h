@@ -1,23 +1,9 @@
 //////////////////////////////////////////////////////////////////////////////
-// fmgengen YM2203 (OPN) emulator
-// Copyright (C) 2015 Katayama Hirofumi MZ (katayama.hirofumi.mz@gmail.com).
-//////////////////////////////////////////////////////////////////////////////
-
-#ifndef FMGENGEN_YM2203_H
-#define FMGENGEN_YM2203_H
+// OPNA emulator
+// Copyright (C) 2015-2025 Katayama Hirofumi MZ (katayama.hirofumi.mz@gmail.com)
 
 #include "opna.h"
 #include "YM2203_Timbre.h"
-
-//////////////////////////////////////////////////////////////////////////////
-// Number of channels
-
-#define FM_CH1          0   // FM channel 1
-#define FM_CH2          1   // FM channel 2
-#define FM_CH3          2   // FM channel 3
-#define SSG_CH_A        3   // SSG channel A
-#define SSG_CH_B        4   // SSG channel B
-#define SSG_CH_C        5   // SSG channel C
 
 //////////////////////////////////////////////////////////////////////////////
 // Number of Key 
@@ -37,11 +23,9 @@
 #define KEY_NUM         12  // 12 keys in a octave
 
 //////////////////////////////////////////////////////////////////////////////
-// Total number of channels
 
-#define FM_CH_NUM       3   // a YM2203 has 3 FM channels
-#define SSG_CH_NUM      3   // a YM2203 has 3 SSG channels
-#define ALL_CH_NUM      (FM_CH_NUM + SSG_CH_NUM)
+#define FM_CH_NUM       3   // YM2203 has 3 FM channels
+#define SSG_CH_NUM      3   // YM2203 has 3 SSG channels
 
 //////////////////////////////////////////////////////////////////////////////
 // Tone/Noise mode of SSG channels
@@ -89,16 +73,23 @@ struct YM2203 {
     ~YM2203() { }
 
     void init(uint32_t clock, uint32_t rate, const char* rhythmpath);
-    void set_pitch(int ch, int octave, int key, int adj = 0);
 
-    // assert((0 <= volume) && (volume <= 15));
-    void set_volume(int ch, int volume, int adj[4]);
-    void set_volume(int ch, int volume) {
+    void fm_key_on(int fm_ich);
+    void fm_key_off(int fm_ich);
+    void fm_set_pitch(int fm_ich, int octave, int key, int adj = 0);
+    void fm_set_volume(int fm_ich, int volume, int adj[4]);
+    void fm_set_volume(int fm_ich, int volume) {
         int adj[4] = {0, 0, 0, 0};
-        set_volume(ch, volume, adj);
+        fm_set_volume(fm_ich, volume, adj);
     }
-    void note_on(int ch);
-    void note_off(int ch);
+    void fm_set_timbre(int fm_ich, YM2203_Timbre *timbre);
+
+    void ssg_key_on(int ssg_ich);
+    void ssg_key_off(int ssg_ich);
+    void ssg_set_pitch(int ssg_ich, int octave, int key, int adj = 0);
+    void ssg_set_volume(int ssg_ich, int volume);
+    void ssg_set_envelope(int ssg_ich, int type, uint16_t interval);
+    void ssg_set_tone_or_noise(int ssg_ich, int mode);
 
     bool load_rhythm_data(const char *path) {
         return m_opna.LoadRhythmSample(path);
@@ -116,13 +107,6 @@ struct YM2203 {
         m_opna.Reset();
     }
 
-    // SSG APIs
-    void set_envelope(int ch, int type, uint16_t interval);
-    void set_tone_or_noise(int ch, int mode);
-
-    // FM APIs
-    void set_timbre(int ch, YM2203_Timbre *timbre);
-
     void write_reg(uint32_t addr, uint32_t data) {
         m_opna.SetReg(addr, data);
     }
@@ -139,9 +123,5 @@ protected:
     static const uint16_t FM_PITCH_TABLE[KEY_NUM];
     static const uint16_t SSG_PITCH_TABLE[KEY_NUM];
 }; // struct YM2203
-
-//////////////////////////////////////////////////////////////////////////////
-
-#endif  // ndef FMGENGEN_YM2203_H
 
 //////////////////////////////////////////////////////////////////////////////

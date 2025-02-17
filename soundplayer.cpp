@@ -345,27 +345,25 @@ void VskPhrase::calc_gate_and_goal() {
 }
 
 // 波形を実現する（ステレオ）
-void VskPhrase::realize(VskSoundPlayer *player, int ich, std::unique_ptr<VSK_PCM16_VALUE[]>& data, size_t *pdata_size) {
-    calc_gate_and_goal();
-    rescan_notes();
+std::unique_ptr<VSK_PCM16_VALUE[]> VskPhrase::realize(int ich, size_t *pdata_size)
+{
+    assert(m_player != nullptr);
 
-    m_player = player;
-    YM2203& ym = player->m_ym;
+    // チャンネルに応じてチップに振り分ける
+    YM2203& ym = (ich >= 3) ? m_player->m_ym1 : m_player->m_ym0;
+    if (ich >= 3)
+        ich -= 3;
 
-    // Allocate the wave data
-    auto count = uint32_t(m_goal * SAMPLERATE * 2); // stereo
-    if (count % 2)
-        ++count;
+    // メモリーを割り当て
+    auto count = uint32_t(m_goal * SAMPLERATE + 1) * 2; // stereo
     *pdata_size = count * sizeof(VSK_PCM16_VALUE);
-    data = std::make_unique<VSK_PCM16_VALUE[]>(count);
+    auto data = std::make_unique<VSK_PCM16_VALUE[]>(count);
     std::memset(&data[0], 0, *pdata_size);
 
     uint32_t isample = 0;
     if (m_setting.m_fm) { // FM sound?
-        int ch = FM_CH1 + ich; // Channel
-
         auto& timbre = m_setting.m_timbre;
-        ym.set_timbre(ch, &timbre);
+        ym.fm_set_timbre(ich, &timbre);
 
         VskLFOCtrl lc;
         lc.init_for_timbre(&timbre);
@@ -380,7 +378,7 @@ void VskPhrase::realize(VskSoundPlayer *player, int ich, std::unique_ptr<VSK_PCM
                 const auto new_tone = note.m_data;
                 assert((0 <= new_tone) && (new_tone < NUM_TONES));
                 timbre = ym2203_tone_table[new_tone];
-                ym.set_timbre(ch, &timbre);
+                ym.fm_set_timbre(ich, &timbre);
                 lc.init_for_timbre(&timbre);
                 continue;
             }
@@ -415,9 +413,9 @@ void VskPhrase::realize(VskSoundPlayer *player, int ich, std::unique_ptr<VSK_PCM
             if (note.m_key != KEY_SPECIAL_REST) { // Not special rest?
                 // do key on
                 if (note.m_key != KEY_REST) { // Has key?
-                    ym.set_pitch(ch, note.m_octave, note.m_key);
-                    ym.set_volume(ch, int(note.m_volume));
-                    ym.note_on(ch);
+                    ym.fm_set_pitch(ich, note.m_octave, note.m_key);
+                    ym.fm_set_volume(ich, int(note.m_volume));
+                    ym.fm_key_on(ich);
                 }
 
                 lc.init_for_keyon(&timbre);
@@ -440,8 +438,8 @@ void VskPhrase::realize(VskSoundPlayer *player, int ich, std::unique_ptr<VSK_PCM
                         int(lc.m_adj_v[0]), int(lc.m_adj_v[1]),
                         int(lc.m_adj_v[2]), int(lc.m_adj_v[3]),
                     };
-                    ym.set_volume(ch, int(note.m_volume), adj);
-                    ym.set_pitch(ch, note.m_octave, note.m_key, int(lc.m_adj_p));
+                    ym.fm_set_volume(ich, int(note.m_volume), adj);
+                    ym.fm_set_pitch(ich, note.m_octave, note.m_key, int(lc.m_adj_p));
                 }
                 nsamples -= unit;
             }
@@ -452,7 +450,7 @@ void VskPhrase::realize(VskSoundPlayer *player, int ich, std::unique_ptr<VSK_PCM
             nsamples = int(SAMPLERATE * sec);
             if (note.m_key != KEY_SPECIAL_REST) {
                 // do key off
-                ym.note_off(ch);
+                ym.fm_key_off(ich);
             }
             unit = SAMPLERATE;
             if (unit > nsamples) {
@@ -463,10 +461,6 @@ void VskPhrase::realize(VskSoundPlayer *player, int ich, std::unique_ptr<VSK_PCM
             isample += nsamples;
         }
     } else { // SSG sound?
-        int ch = SSG_CH_A + ich; // Channel
-
-        ym.set_tone_or_noise(ch, TONE_MODE);
-
         for (auto& note : m_notes) {
             if (note.m_key == KEY_SPECIAL_ACTION) { // Special action?
                 schedule_special_action(note.m_gate, note.m_data);
@@ -493,9 +487,9 @@ void VskPhrase::realize(VskSoundPlayer *player, int ich, std::unique_ptr<VSK_PCM
 
             // do key on
             if (note.m_key != KEY_REST && note.m_key != KEY_SPECIAL_REST) {
-                ym.set_pitch(ch, note.m_octave, note.m_key);
-                ym.set_volume(ch, int(note.m_volume));
-                ym.note_on(ch);
+                ym.ssg_set_pitch(ich, note.m_octave, note.m_key);
+                ym.ssg_set_volume(ich, int(note.m_volume));
+                ym.ssg_key_on(ich);
             }
 
             // render sound
@@ -509,13 +503,15 @@ void VskPhrase::realize(VskSoundPlayer *player, int ich, std::unique_ptr<VSK_PCM
             nsamples = int(SAMPLERATE * sec);
             if (note.m_key != KEY_SPECIAL_REST) {
                 // do key off
-                ym.note_off(ch);
+                ym.ssg_key_off(ich);
             }
             ym.mix(&data[isample * 2], nsamples);
             ym.count(uint32_t(sec * 1000 * 1000));
             isample += nsamples;
         }
     }
+
+    return data;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -564,7 +560,14 @@ VskSoundPlayer::VskSoundPlayer(const char *rhythm_path)
     , m_stopping_event(false, false)
 {
     // YMを初期化
-    m_ym.init(CLOCK, SAMPLERATE, rhythm_path);
+    m_ym0.init(CLOCK, SAMPLERATE, rhythm_path);
+    m_ym1.init(CLOCK, SAMPLERATE, rhythm_path);
+
+    for (int ich = 0; ich < SSG_CH_NUM; ++ich)
+    {
+        m_ym0.ssg_set_tone_or_noise(ich, TONE_MODE);
+        m_ym1.ssg_set_tone_or_noise(ich, TONE_MODE);
+    }
 }
 
 bool VskSoundPlayer::wait_for_stop(uint32_t milliseconds) {
@@ -580,16 +583,22 @@ bool VskSoundPlayer::play_and_wait(VskScoreBlock& block, uint32_t milliseconds, 
 
 // PCM波形を生成する
 bool VskSoundPlayer::generate_pcm_raw(VskScoreBlock& block, std::vector<VSK_PCM16_VALUE>& values, bool stereo) {
-    // ステレオ音声として波形を実現する
-    const int source_num_channels = 2;
     std::vector<std::unique_ptr<VSK_PCM16_VALUE[]>> raw_data;
     std::vector<size_t> data_sizes;
+
+    // ステレオ音声として波形を実現する
     int ich = 0;
+    const int source_num_channels = 2;
     for (auto& phrase : block) {
         if (phrase) {
-            std::unique_ptr<VSK_PCM16_VALUE[]> data;
+            phrase->calc_gate_and_goal();
+            phrase->rescan_notes();
+            phrase->set_player(this);
+
             size_t data_size;
-            phrase->realize(this, ich, data, &data_size);
+            auto data = phrase->realize(ich, &data_size);
+            assert(data != nullptr);
+
             raw_data.push_back(std::move(data));
             data_sizes.push_back(data_size);
         }

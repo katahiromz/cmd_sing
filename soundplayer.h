@@ -148,6 +148,11 @@ struct VskPhrase {
 
     VskPhrase(VskSoundSetting& setting) : m_setting(setting) { }
 
+    void set_player(VskSoundPlayer* player)
+    {
+        m_player = player;
+    }
+
     // 音符を追加
     void add_note(char note) {
         add_note(note, false);
@@ -236,9 +241,7 @@ struct VskPhrase {
 
     void schedule_special_action(float gate, int action_no);
     void execute_special_actions();
-    void realize(VskSoundPlayer* player, int ich, std::unique_ptr<VSK_PCM16_VALUE[]>& data, size_t *pdata_size);
-
-protected:
+    std::unique_ptr<VSK_PCM16_VALUE[]> realize(int ich, size_t *pdata_size);
     void rescan_notes();
     void calc_gate_and_goal();
 }; // struct VskPhrase
@@ -260,7 +263,8 @@ struct VskSoundPlayer {
     std::deque<VskScoreBlock>                   m_melody_line;      // メロディーライン
     unboost::mutex                              m_play_lock;        // 排他制御のミューテックス
     std::vector<std::shared_ptr<VskNote>>       m_notes;            // 音符、休符、その他の何かの配列
-    YM2203                                      m_ym;               // 音源エミュレータ
+    YM2203                                      m_ym0;              // 音源エミュレータ #0
+    YM2203                                      m_ym1;              // 音源エミュレータ #1
     std::vector<VSK_PCM16_VALUE>                m_pcm_values;       // 実際の波形
 
     // アクション番号からスペシャルアクションへの写像
@@ -280,7 +284,8 @@ struct VskSoundPlayer {
     void do_special_action(int action_no);
 
     void write_reg(uint32_t addr, uint32_t data) {
-        m_ym.write_reg(addr, data);
+        m_ym0.write_reg(addr, data);
+        m_ym1.write_reg(addr, data);
     }
 }; // struct VskSoundPlayer
 
