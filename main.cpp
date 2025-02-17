@@ -86,7 +86,7 @@ LPCTSTR get_text(INT id)
                    TEXT("\n")
                    TEXT("オプション:\n")
                    TEXT("  -D変数名=値            変数に代入。\n")
-                   TEXT("  -save_wav 出力.wav     WAVファイルとして保存。\n")
+                   TEXT("  -save-wav 出力.wav     WAVファイルとして保存。\n")
                    TEXT("  -stopm                 音楽を止めて設定をリセット。\n")
                    TEXT("  -stereo                音をステレオにする（デフォルト）。\n")
                    TEXT("  -mono                  音をモノラルにする。\n")
@@ -114,7 +114,7 @@ LPCTSTR get_text(INT id)
                    TEXT("\n")
                    TEXT("Options:\n")
                    TEXT("  -DVAR=VALUE            Assign to a variable.\n")
-                   TEXT("  -save_wav output.wav   Save as WAV file.\n")
+                   TEXT("  -save-wav output.wav   Save as WAV file.\n")
                    TEXT("  -stopm                 Stop music and reset settings.\n")
                    TEXT("  -stereo                Make sound stereo (default).\n")
                    TEXT("  -mono                  Make sound mono.\n")
@@ -321,7 +321,8 @@ RET CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             return RET_SUCCESS;
         }
 
-        if (_wcsicmp(arg, L"-save_wav") == 0 || _wcsicmp(arg, L"--save_wav") == 0)
+        if (_wcsicmp(arg, L"-save-wav") == 0 || _wcsicmp(arg, L"--save-wav") == 0 ||
+            _wcsicmp(arg, L"-save_wav") == 0 || _wcsicmp(arg, L"--save_wav") == 0)
         {
             if (iarg + 1 < argc)
             {
