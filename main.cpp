@@ -228,18 +228,6 @@ std::string vsk_replace_placeholders2(const std::string& str)
     return vsk_replace_placeholders2(str, visited);
 }
 
-// ワイド文字列をSJIS文字列に変換
-std::string vsk_sjis_from_wide(const wchar_t *wide)
-{
-    int size = WideCharToMultiByte(932, 0, wide, -1, nullptr, 0, nullptr, nullptr);
-    if (size == 0)
-        return "";
-    std::string str;
-    str.resize(size - 1);
-    WideCharToMultiByte(932, 0, wide, -1, &str[0], size, nullptr, nullptr);
-    return str;
-}
-
 VSK_SOUND_ERR vsk_sound_cmd_sing(const wchar_t *wstr, bool stereo)
 {
     return vsk_sound_cmd_sing(vsk_sjis_from_wide(wstr).c_str(), stereo);
