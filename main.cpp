@@ -168,6 +168,7 @@ struct CMD_SING
     std::wstring m_str_to_play;
     std::wstring m_output_file;
     bool m_bgm = false;
+    bool m_bgm2 = false;
     bool m_stopm = false;
     bool m_stereo = true;
     bool m_no_reg = false;
@@ -416,7 +417,7 @@ RET CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
         {
             if (iarg + 1 < argc)
             {
-                m_bgm = !!_wtoi(argv[++iarg]);
+                m_bgm2 = m_bgm = !!_wtoi(argv[++iarg]);
                 continue;
             }
             else
@@ -548,8 +549,15 @@ RET CMD_SING::run(INT argc, wchar_t **argv)
         return RET_BAD_SOUND_INIT;
     }
 
-    if (m_bgm && m_output_file.empty() && !m_stopm) // 非同期に演奏か？
+    if (m_bgm && m_output_file.empty()) // 非同期に演奏か？
     {
+        if (m_stopm && m_bgm2)
+        {
+            // サーバーを停止
+            if (HWND hwndServer = find_server_window())
+                SendMessageW(hwndServer, WM_CLOSE, 0, 0);
+        }
+
         // 文法をチェックする
         auto err = play_str(true);
 
