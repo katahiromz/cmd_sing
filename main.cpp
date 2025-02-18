@@ -4,7 +4,6 @@
     #include <crtdbg.h>
 #endif
 
-#include "sound.h"
 #include <cstdio>
 #include <cstring>
 #include <cassert>
@@ -15,6 +14,8 @@
 #include <tchar.h>
 #include <shlwapi.h>
 #include <strsafe.h>
+#include "sound.h"
+#include "server/server.h"
 
 enum RET { // exit code of this program
     RET_SUCCESS = 0,
@@ -90,6 +91,8 @@ LPCTSTR get_text(INT id)
                    TEXT("  -stopm                 音楽を止めて設定をリセット。\n")
                    TEXT("  -stereo                音をステレオにする（デフォルト）。\n")
                    TEXT("  -mono                  音をモノラルにする。\n")
+                   TEXT("  -bgm 0                     演奏が終わるまで待つ（デフォルト）。\n")
+                   TEXT("  -bgm 1                     演奏が終わるまで待たない。\n")
                    TEXT("  -help                  このメッセージを表示する。\n")
                    TEXT("  -version               バージョン情報を表示する。\n")
                    TEXT("\n")
@@ -118,6 +121,8 @@ LPCTSTR get_text(INT id)
                    TEXT("  -stopm                 Stop music and reset settings.\n")
                    TEXT("  -stereo                Make sound stereo (default).\n")
                    TEXT("  -mono                  Make sound mono.\n")
+                   TEXT("  -bgm 0                     Wait until the performance is over (default).\n")
+                   TEXT("  -bgm 1                     Don't wait until the performance is over.\n")
                    TEXT("  -help                  Display this message.\n")
                    TEXT("  -version               Display version info.\n")
                    TEXT("\n")
@@ -146,9 +151,9 @@ void usage(void)
     my_puts(get_text(IDT_HELP), stdout);
 }
 
-VSK_SOUND_ERR vsk_sound_cmd_sing(const wchar_t *wstr, bool stereo)
+VSK_SOUND_ERR vsk_sound_cmd_sing(const wchar_t *wstr, bool stereo, bool no_sound)
 {
-    return vsk_sound_cmd_sing(vsk_sjis_from_wide(wstr).c_str(), stereo);
+    return vsk_sound_cmd_sing(vsk_sjis_from_wide(wstr).c_str(), stereo, no_sound);
 }
 
 VSK_SOUND_ERR vsk_sound_cmd_sing_save(const wchar_t *wstr, const wchar_t *filename, bool stereo)
@@ -162,15 +167,22 @@ struct CMD_SING
     bool m_version = false;
     std::wstring m_str_to_play;
     std::wstring m_output_file;
+    bool m_bgm = false;
     bool m_stopm = false;
     bool m_stereo = true;
     bool m_no_reg = false;
     std::map<VskString, VskString> m_variables;
 
     RET parse_cmd_line(int argc, wchar_t **argv);
-    RET run();
+    RET run(INT argc, wchar_t **argv);
     bool load_settings();
     bool save_settings();
+    bool save_bgm_only();
+
+    VSK_SOUND_ERR save_wav();
+    VSK_SOUND_ERR play_str(bool no_sound);
+    std::wstring build_server_cmd_line(int argc, wchar_t **argv);
+    RET start_server(const std::wstring& cmd_line);
 };
 
 // レジストリから設定を読み込む
@@ -193,6 +205,13 @@ bool CMD_SING::load_settings()
         error = RegQueryValueExW(hKey, L"Stereo", NULL, NULL, (BYTE*)&dwValue, &cbValue);
         if (!error)
             m_stereo = !!dwValue;
+    }
+    // BGMか？
+    {
+        DWORD dwValue, cbValue = sizeof(dwValue);
+        error = RegQueryValueExW(hKey, L"BGM", NULL, NULL, (BYTE*)&dwValue, &cbValue);
+        if (!error)
+            m_bgm = !!dwValue;
     }
 
     // 音声の設定のサイズ
@@ -254,6 +273,11 @@ bool CMD_SING::save_settings()
         DWORD dwValue = !!m_stereo, cbValue = sizeof(dwValue);
         RegSetValueExW(hKey, L"Stereo", 0, REG_DWORD, (BYTE *)&dwValue, cbValue);
     }
+    // BGMか？
+    {
+        DWORD dwValue = !!m_bgm, cbValue = sizeof(dwValue);
+        RegSetValueExW(hKey, L"BGM", 0, REG_DWORD, (BYTE *)&dwValue, cbValue);
+    }
 
     // 音声の設定を書き込む
     RegSetValueExW(hKey, L"setting", 0, REG_BINARY, setting.data(), (DWORD)setting.size());
@@ -291,10 +315,44 @@ retry:
     return true;
 }
 
+bool CMD_SING::save_bgm_only()
+{
+    if (m_no_reg)
+        return false;
+
+    // レジストリを作成
+    HKEY hKey;
+    LSTATUS error = RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\Katayama Hirofumi MZ\\cmd_sing", 0,
+                                    NULL, 0, KEY_READ | KEY_WRITE, NULL, &hKey, NULL);
+    if (error)
+        return false;
+
+    // BGMか？
+    {
+        DWORD dwValue = !!m_bgm, cbValue = sizeof(dwValue);
+        RegSetValueExW(hKey, L"BGM", 0, REG_DWORD, (BYTE *)&dwValue, cbValue);
+    }
+
+    // レジストリを閉じる
+    RegCloseKey(hKey);
+
+    return true;
+}
+
 // アプリのレジストリキーを消す
 void erase_reg_settings(void)
 {
     RegDeleteKeyW(HKEY_CURRENT_USER, L"Software\\Katayama Hirofumi MZ\\cmd_sing");
+}
+
+VSK_SOUND_ERR CMD_SING::save_wav()
+{
+    return vsk_sound_cmd_sing_save(m_str_to_play.c_str(), m_output_file.c_str(), m_stereo);
+}
+
+VSK_SOUND_ERR CMD_SING::play_str(bool no_sound)
+{
+    return vsk_sound_cmd_sing(m_str_to_play.c_str(), m_stereo, no_sound);
 }
 
 RET CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
@@ -354,6 +412,20 @@ RET CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
             continue;
         }
 
+        if (_wcsicmp(arg, L"-bgm") == 0 || _wcsicmp(arg, L"--bgm") == 0)
+        {
+            if (iarg + 1 < argc)
+            {
+                m_bgm = !!_wtoi(argv[++iarg]);
+                continue;
+            }
+            else
+            {
+                my_printf(stderr, get_text(IDT_NEEDS_OPERAND), arg);
+                return RET_BAD_CMDLINE;
+            }
+        }
+
         // hidden feature
         if (_wcsicmp(arg, L"-no-beep") == 0 || _wcsicmp(arg, L"--no-beep") == 0)
         {
@@ -404,7 +476,59 @@ RET CMD_SING::parse_cmd_line(int argc, wchar_t **argv)
     return RET_SUCCESS;
 }
 
-RET CMD_SING::run()
+std::wstring CMD_SING::build_server_cmd_line(int argc, wchar_t **argv)
+{
+    std::wstring ret;
+
+    bool first = true;
+    for (int iarg = 1; iarg < argc; ++iarg)
+    {
+        if (!first)
+            ret += L' ';
+        else
+            first = false;
+
+        std::wstring arg = argv[iarg];
+        if (arg.find(L' ') != arg.npos || arg.find(L'\t') != arg.npos)
+        {
+            ret += L'"';
+            ret += arg;
+            ret += L'"';
+        }
+        else
+        {
+            ret += arg;
+        }
+    }
+
+    return ret;
+}
+
+// サーバーを起動する
+RET CMD_SING::start_server(const std::wstring& cmd_line)
+{
+    // サーバーへのパスファイル名を構築する
+    WCHAR szPath[MAX_PATH];
+    GetModuleFileNameW(NULL, szPath, _countof(szPath));
+    PathRemoveFileSpecW(szPath);
+    PathAppendW(szPath, L"cmd_sing_server.exe");
+
+    // シェルでサーバーを起動する
+    SHELLEXECUTEINFOW info = { sizeof(info) };
+    info.fMask = SEE_MASK_FLAG_NO_UI;
+    info.lpFile = szPath;
+    info.lpParameters = cmd_line.c_str();
+    info.nShow = SW_HIDE;
+    if (!ShellExecuteExW(&info))
+    {
+        my_printf(stderr, get_text(IDT_BAD_CALL));
+        return RET_BAD_CALL;
+    }
+
+    return RET_SUCCESS;
+}
+
+RET CMD_SING::run(INT argc, wchar_t **argv)
 {
     if (m_help)
     {
@@ -418,19 +542,58 @@ RET CMD_SING::run()
         return RET_SUCCESS;
     }
 
-    load_settings();
-
     if (!vsk_sound_init(m_stereo))
     {
         my_puts(get_text(IDT_SOUND_INIT_FAILED), stderr);
         return RET_BAD_SOUND_INIT;
     }
 
+    if (m_bgm && m_output_file.empty() && !m_stopm) // 非同期に演奏か？
+    {
+        // 文法をチェックする
+        auto err = play_str(true);
+
+        save_bgm_only();
+        vsk_sound_exit();
+
+        switch (err)
+        {
+        case VSK_SOUND_ERR_ILLEGAL:
+            my_puts(get_text(IDT_BAD_CALL), stderr);
+            do_beep();
+            return RET_BAD_CALL;
+        case VSK_SOUND_ERR_IO_ERROR:
+            my_puts(get_text(IDT_CANT_OPEN_FILE), stderr);
+            do_beep();
+            return RET_CANT_OPEN_FILE;
+        default:
+            break;
+        }
+
+        auto cmd_line = build_server_cmd_line(argc, argv);
+        HWND hwndServer = find_server_window();
+        if (!hwndServer)
+            return start_server(cmd_line);
+
+        COPYDATASTRUCT cds;
+        cds.dwData = 0xDEADFACE;
+        cds.cbData = (cmd_line.size() + 1) * sizeof(WCHAR);
+        cds.lpData = (PVOID)cmd_line.c_str();
+        SendMessageW(hwndServer, WM_COPYDATA, 0, (LPARAM)&cds);
+
+        return RET_SUCCESS;
+    }
+
     if (m_stopm) // 音楽を止めて設定をリセットする
     {
-        // TODO: 音楽を止める
+        // サーバーを停止
+        if (HWND hwndServer = find_server_window())
+            PostMessageW(hwndServer, WM_CLOSE, 0, 0);
+        // 変数をクリア
         g_variables.clear();
+        // 設定をクリア
         vsk_cmd_sing_reset_settings();
+        m_bgm = false;
     }
 
     // g_variablesをm_variablesで上書き
@@ -439,7 +602,7 @@ RET CMD_SING::run()
 
     if (m_output_file.size())
     {
-        if (VSK_SOUND_ERR err = vsk_sound_cmd_sing_save(m_str_to_play.c_str(), m_output_file.c_str(), m_stereo))
+        if (auto err = save_wav())
         {
             RET ret = RET_BAD_CALL;
             switch (err)
@@ -463,7 +626,7 @@ RET CMD_SING::run()
         return RET_SUCCESS;
     }
 
-    if (VSK_SOUND_ERR err = vsk_sound_cmd_sing(m_str_to_play.c_str(), m_stereo))
+    if (auto err = play_str(false))
     {
         RET ret = RET_BAD_CALL;
         switch (err)
@@ -516,13 +679,14 @@ int wmain(int argc, wchar_t **argv)
     SetConsoleCtrlHandler(HandlerRoutine, TRUE); // Ctrl+C
 
     CMD_SING sing;
+    sing.load_settings();
     if (RET ret = sing.parse_cmd_line(argc, argv))
     {
         do_beep();
         return ret;
     }
 
-    return sing.run();
+    return sing.run(argc, argv);
 }
 
 #include <clocale>
